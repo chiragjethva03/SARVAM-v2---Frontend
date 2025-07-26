@@ -71,7 +71,7 @@ class GoogleButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () {},
         icon: Image.asset(
-          'assets/auth/google.png',
+          "assets/auth/google.png",
           height: 20,
         ),
         label: const Text(
@@ -87,6 +87,23 @@ class GoogleButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class FullNameField extends StatelessWidget {
+  const FullNameField({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.verified_user_outlined),
+        hintText: 'Full name',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );

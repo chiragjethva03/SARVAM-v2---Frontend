@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sarvam/views/signin_screen.dart';
+import 'package:sarvam/views/auth/signin_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Intro4Screen extends StatelessWidget {
   @override
@@ -50,7 +51,7 @@ class Intro4Screen extends StatelessWidget {
                         fontStyle: FontStyle.italic,
                       ),
                       textAlign: TextAlign.center,
-                    )
+                    ),
                   ],
                 ),
                 SizedBox(height: 10 * scaleFactor),
@@ -71,14 +72,13 @@ class Intro4Screen extends StatelessWidget {
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(
-                      horizontal: 16.0 * scaleFactor,
-                      vertical: 8.0 * scaleFactor),
+                    horizontal: 16.0 * scaleFactor,
+                    vertical: 8.0 * scaleFactor,
+                  ),
                   child: Text(
                     "Start your adventure and explore India with all services in one place.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18 * scaleFactor,
-                    ),
+                    style: TextStyle(fontSize: 18 * scaleFactor),
                   ),
                 ),
                 SizedBox(height: 10 * scaleFactor),
@@ -90,18 +90,21 @@ class Intro4Screen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10 * scaleFactor),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool('seenIntro', true);
+
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => SignInScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const SignInScreen(),
+                          ),
                         );
                       },
-                      child: Text(
-                        "Let’s Go",
-                      ),
+                      child: Text("Let’s Go"),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),

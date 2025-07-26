@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'onboarding_pages.dart'; // <-- import this instead of home_screen.dart
+
+import 'IntroScreens/onboarding_pages.dart';
+import 'auth/signin_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   @override
@@ -11,11 +14,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
+    _navigate();
+  }
+
+  Future<void> _navigate() async {
+    // Wait for splash display
+    await Future.delayed(const Duration(seconds: 3));
+
+    final prefs = await SharedPreferences.getInstance();
+    final seenIntro = prefs.getBool('seenIntro') ?? false;
+
+    if (seenIntro) {
+      // Already seen intro -> go to Sign In screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const SignInScreen()),
+      );
+    } else {
+      // First time -> go to intro pages
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const OnboardingPages()),
       );
-    });
+    }
   }
 
   @override

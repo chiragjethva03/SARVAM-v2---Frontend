@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'IntroScreens/intro1_screen.dart';
-import 'IntroScreens/intro2_screen.dart';
-import 'IntroScreens/intro3_screen.dart';
-import 'IntroScreens/intro4_screen.dart';
+import 'intro1_screen.dart';
+import 'intro2_screen.dart';
+import 'intro3_screen.dart';
+import 'intro4_screen.dart';
 
 class OnboardingPages extends StatefulWidget {
   const OnboardingPages({super.key});
