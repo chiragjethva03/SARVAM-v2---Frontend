@@ -32,7 +32,10 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.buttonColor,
         foregroundColor: Colors.white,
-        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 20, // <-- added this line
+        ),
       ),
     ),
   );

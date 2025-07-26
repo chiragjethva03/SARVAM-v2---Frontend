@@ -98,9 +98,6 @@ class Intro4Screen extends StatelessWidget {
                       },
                       child: Text(
                         "Let’s Go",
-                        style: TextStyle(
-                          fontSize: 20 * scaleFactor,
-                        ),
                       ),
                     ),
                   ),
