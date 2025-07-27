@@ -86,11 +86,10 @@ class Intro1Screen extends StatelessWidget {
               // Image section
               Center(
                 child: Container(
-                  margin: EdgeInsets.only(top: 5 * scaleFactor),
                   child: Image.asset(
                     "assets/IntroScreen/intro1.png",
-                    width: 470 * scaleFactor,
-                    height: 470 * scaleFactor,
+                    width: 450 * scaleFactor,
+                    height: 450 * scaleFactor,
                     fit: BoxFit.contain,
                   ),
                 ),
