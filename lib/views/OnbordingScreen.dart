@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-
+import 'home_screen.dart';
 import 'IntroScreens/onboarding_pages.dart';
 import 'auth/signin_screen.dart';
 
@@ -18,19 +18,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _navigate() async {
-    // Wait for splash display
     await Future.delayed(const Duration(seconds: 3));
 
     final prefs = await SharedPreferences.getInstance();
+
+    // 1. Check if token is stored (user already logged in)
+    final token = prefs.getString('token');
+
+    if (token != null && token.isNotEmpty) {
+      // Token found -> Directly go to HomePage
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+      return;
+    }
+
+    // 2. If no token, check intro logic
     final seenIntro = prefs.getBool('seenIntro') ?? false;
 
     if (seenIntro) {
-      // Already seen intro -> go to Sign In screen
+      // Already seen intro -> show Sign In screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const SignInScreen()),
       );
     } else {
-      // First time -> go to intro pages
+      // First time -> show Onboarding/Intro pages
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const OnboardingPages()),
       );

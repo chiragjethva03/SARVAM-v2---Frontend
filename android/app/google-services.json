@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "682757087410",
+    "project_id": "sarvam-v2",
+    "storage_bucket": "sarvam-v2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:682757087410:android:94ad7a7c2cd2c07203a9ab",
+        "android_client_info": {
+          "package_name": "com.example.sarvam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJ9XFPCUddssAfOSEK3qvTNv8cJ3wCxgM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
