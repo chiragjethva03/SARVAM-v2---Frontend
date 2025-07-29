@@ -4,7 +4,7 @@ import 'signup_screen.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_overlay.dart'; // Import your loading overlay
-import '../home_screen.dart';
+import '.././home_page.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -58,7 +58,14 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (response["status"] == 200) {
         final body = response["body"];
-        await AuthService.saveToken(body['token']); // Save token locally
+
+        // Save token, name, and an empty photoUrl for manual login
+        await AuthService.saveUserData(
+          token: body['token'],
+          userId: body['user']['id'], // add this
+          name: body['user']['fullName'],
+          photoUrl: "", // manual login has no image
+        );
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Welcome ${body['user']['fullName']}")),
@@ -70,13 +77,15 @@ class _SignInScreenState extends State<SignInScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response["body"]["message"] ?? "Login failed")),
+          SnackBar(
+            content: Text(response["body"]["message"] ?? "Login failed"),
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Something went wrong")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Something went wrong")));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -90,7 +99,6 @@ class _SignInScreenState extends State<SignInScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Main content
             SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

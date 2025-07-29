@@ -3,7 +3,7 @@ import '../../services/auth_service.dart';
 import 'signin_screen.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../widgets/loading_overlay.dart'; // Add this import
-import '../home_screen.dart';
+import '../home_page.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -74,7 +74,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final body = result['body'];
 
       if (status == 200) {
-        await AuthService.saveToken(body['token']);
+        // Save token, name, and empty photoUrl
+        await AuthService.saveUserData(
+          token: body['token'],
+          userId: body['user']['id'], // add this
+          name: body['user']['fullName'],
+          photoUrl: "", // no image for manual signup
+        );
 
         fullNameController.clear();
         emailController.clear();

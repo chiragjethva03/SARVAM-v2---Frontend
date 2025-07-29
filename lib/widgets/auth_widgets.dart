@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../services/auth_service.dart';
-import '../views/home_screen.dart';
+import '../views/home_page.dart';
 
 /// ========================
 /// Full Name Field
@@ -137,11 +137,19 @@ class _GoogleButtonState extends State<GoogleButton> {
       final user = userCredential.user;
 
       if (user != null) {
+        // Send to backend
         final response = await AuthService.googleSignInToBackend(user);
 
         if (response["status"] == 200) {
           final body = response["body"];
-          await AuthService.saveToken(body["token"]);
+
+          // Save all user info locally
+          await AuthService.saveUserData(
+            token: body["token"],
+            userId: body['user']['id'], // add this
+            name: (body['user']['fullName'] ?? "") as String,
+            photoUrl: (body['user']['profilePicture'] ?? "") as String,
+          );
 
           ScaffoldMessenger.of(
             context,

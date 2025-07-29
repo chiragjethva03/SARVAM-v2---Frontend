@@ -50,9 +50,17 @@ class AuthService {
     return {"status": response.statusCode, "body": body};
   }
 
-  static Future<void> saveToken(String token) async {
+  static Future<void> saveUserData({
+    required String token,
+    required String userId,
+    required String name,
+    String? photoUrl,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', token);
+    await prefs.setString('userId', userId); // Store userId
+    await prefs.setString('name', name);
+    await prefs.setString('photoUrl', photoUrl ?? '');
   }
 
   static Future<void> clearToken() async {
