@@ -49,17 +49,41 @@ class PostService {
   }
 
   /// Fetch all posts (with populated user info)
-  static Future<List<dynamic>> fetchPosts() async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/posts');
-    final response = await http.get(url);
+  static Future<List<dynamic>> fetchPosts({String? userId}) async {
+  final query = userId != null ? '?userId=$userId' : '';
+  final url = Uri.parse('${ApiConfig.baseUrl}/posts$query');
+  final response = await http.get(url);
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return data['posts'];
+  } else {
+    throw Exception('Failed to fetch posts');
+  }
+}
+
+
+}
+
+class LikeService {
+  static const String baseUrl = '${ApiConfig.baseUrl}'; // replace with your API base URL
+
+  static Future<Map<String, dynamic>> toggleLike({
+    required String postId,
+    required String userId,
+  }) async {
+    final url = Uri.parse('$baseUrl/$postId/like');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"userId": userId}),
+    );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['posts']; // Adjust this if your JSON key is different
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to fetch posts');
+      throw Exception("Failed to like post");
     }
   }
-
-  
 }
+

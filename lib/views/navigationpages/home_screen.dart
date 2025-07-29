@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/search_bar.dart';
 import '../create_post_screen.dart';
-import '../../services/post_service.dart';
-import 'package:share_plus/share_plus.dart'; // for sharing posts
+import '../../services/post_service.dart'; // LikeService also inside here
+import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,27 +23,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadUserId();
-    _refreshPosts();
   }
 
   Future<void> _loadUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userId = prefs.getString("userId");
-    });
+    userId = prefs.getString("userId");
+    await _refreshPosts();
   }
 
   Future<void> _refreshPosts() async {
     try {
       setState(() => _isLoading = true);
-      final data = await PostService.fetchPosts();
+      final data = await PostService.fetchPosts(userId: userId);
       setState(() {
         posts = data;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to load posts")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to load posts")));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -50,17 +49,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _navigateToCreatePost() async {
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please login first")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please login first")));
       return;
     }
 
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => CreatePostScreen(userId: userId!),
-      ),
+      MaterialPageRoute(builder: (_) => CreatePostScreen(userId: userId!)),
     );
 
     if (result == true) {
@@ -68,10 +65,39 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _toggleLike(int index) async {
+    if (userId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please login first")));
+      return;
+    }
+
+    final postId = posts[index]['_id'];
+    print("DEBUG: Liking post $postId for user $userId");
+
+    try {
+      final result = await LikeService.toggleLike(
+        postId: postId,
+        userId: userId!,
+      );
+
+      print("DEBUG: Like API response: $result");
+
+      // Update post state safely
+      setState(() {
+        posts[index] = {
+          ...posts[index],
+          'likesCount': result['likesCount'],
+          'liked': result['liked'],
+        };
+      });
+    } catch (e) {
+      print("ERROR: Like API failed: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to like post")));
+    }
   }
 
   @override
@@ -80,9 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return SafeArea(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top bar
+          // Top Bar
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: screenWidth * 0.04,
@@ -114,119 +139,159 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Posts
+          // Posts List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : RefreshIndicator(
                     onRefresh: _refreshPosts,
-                    child: ListView.builder(
+                    child: ListView.separated(
                       itemCount: posts.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        thickness: 1,
+                        height: 30,
+                        color: Colors.grey,
+                      ),
                       itemBuilder: (context, index) {
                         final post = posts[index];
-                        final user = post['userId']; // populated user object
+                        final user = post['userId'];
+                        final description = post['description'] ?? '';
+                        final userName = user['fullName'] ?? 'Unknown';
 
-                        return Card(
-                          margin: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.03,
+                        return Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.04,
                             vertical: screenWidth * 0.02,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Row: profile picture + (name + location)
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CircleAvatar(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // User Info
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF2196F3,
+                                      ).withOpacity(0.11),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 22,
                                       backgroundImage:
                                           (user['profilePicture'] ?? '')
-                                                  .isNotEmpty
-                                              ? NetworkImage(
-                                                  user['profilePicture'])
-                                              : null,
-                                      child: (user['profilePicture'] ?? '')
-                                              .isEmpty
+                                              .isNotEmpty
+                                          ? NetworkImage(user['profilePicture'])
+                                          : null,
+                                      child:
+                                          (user['profilePicture'] ?? '').isEmpty
                                           ? const Icon(Icons.person)
                                           : null,
-                                      radius: 22,
                                     ),
-                                    const SizedBox(width: 10),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          user['fullName'] ?? "Unknown",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        userName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
                                         ),
-                                        if (post['location'] != null)
-                                          Text(
-                                            post['location'],
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 10),
-
-                                // Post image
-                                if (post['imageUrl'] != null)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      post['imageUrl'],
-                                      width: double.infinity,
-                                      height: 200,
-                                      fit: BoxFit.cover,
-                                    ),
+                                      ),
+                                      if (post['location'] != null)
+                                        Text(
+                                          post['location'],
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                    ],
                                   ),
-                                const SizedBox(height: 8),
+                                ],
+                              ),
 
-                                // Like & Share row (old style)
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.favorite_border),
-                                        const SizedBox(width: 4),
-                                        Text('${post['likes'] ?? 0}'),
-                                      ],
+                              const SizedBox(height: 10),
+
+                              // Post Image
+                              // Post Image
+                              if (post['imageUrl'] != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: CachedNetworkImage(
+                                    imageUrl: post['imageUrl'],
+                                    width: double.infinity,
+                                    height: 240,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(
+                                      child: CircularProgressIndicator(),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.share),
-                                      onPressed: () {
-                                        Share.share(
-                                            '${post['description'] ?? ''}\n${post['imageUrl'] ?? ''}');
-                                      },
-                                    ),
-                                  ],
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(
+                                          Icons.broken_image,
+                                          size: 50,
+                                        ),
+                                  ),
                                 ),
 
-                                const SizedBox(height: 8),
+                              const SizedBox(height: 10),
 
-                                // Description
-                                Text(
-                                  post['description'] ?? '',
+                              // Like and Share Row
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => _toggleLike(index),
+                                        child: Icon(
+                                          post['liked'] == true
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: post['liked'] == true
+                                              ? Colors.red
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text("${post['likesCount'] ?? 0}"),
+                                    ],
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.share),
+                                    onPressed: () {
+                                      Share.share(
+                                        '${post['description'] ?? ''}\n${post['imageUrl'] ?? ''}',
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Description
+                              RichText(
+                                text: TextSpan(
+                                  text: "$userName ",
                                   style: const TextStyle(
-                                    fontSize: 16, // Bigger text
-                                    fontWeight: FontWeight.w400,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                    fontSize: 16,
                                   ),
+                                  children: [
+                                    TextSpan(
+                                      text: description,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         );
                       },
