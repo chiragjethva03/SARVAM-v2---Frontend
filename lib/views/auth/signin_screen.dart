@@ -60,11 +60,13 @@ class _SignInScreenState extends State<SignInScreen> {
         final body = response["body"];
 
         // Save token, name, and an empty photoUrl for manual login
+        // Save user data AND update Provider
         await AuthService.saveUserData(
-          token: body['token'],
-          userId: body['user']['id'], // add this
-          name: body['user']['fullName'],
-          photoUrl: "", // manual login has no image
+          context: context, // <--- IMPORTANT
+          token: body["token"],
+          userId: body['user']['id'],
+          name: (body['user']['fullName'] ?? "") as String,
+          photoUrl: (body['user']['profilePicture'] ?? "") as String,
         );
 
         ScaffoldMessenger.of(context).showSnackBar(

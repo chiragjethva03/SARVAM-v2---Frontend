@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../services/auth_service.dart';
 import '../views/home_page.dart';
+import '../views/debug_utils.dart';
 
 /// ========================
 /// Full Name Field
@@ -144,12 +145,17 @@ class _GoogleButtonState extends State<GoogleButton> {
           final body = response["body"];
 
           // Save all user info locally
+          // Save all user info locally and update provider
           await AuthService.saveUserData(
-            token: body["token"],
-            userId: body['user']['id'], // add this
-            name: (body['user']['fullName'] ?? "") as String,
-            photoUrl: (body['user']['profilePicture'] ?? "") as String,
+            context: context, // <-- IMPORTANT
+            token: body['token'],
+            userId: body['user']['id'],
+            name: body['user']['fullName'],
+            photoUrl: body['user']['profilePicture'] ?? "",
           );
+
+          await debugPrintSharedPrefs();
+          debugPrintProvider(context);
 
           ScaffoldMessenger.of(
             context,

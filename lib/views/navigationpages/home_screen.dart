@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/search_bar.dart';
+import '../../widgets/app_drawer.dart';
 import '../create_post_screen.dart';
 import '../../services/post_service.dart'; // LikeService also inside here
 import 'package:share_plus/share_plus.dart';
@@ -16,16 +17,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? userId;
+
   List<dynamic> posts = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserId();
+    _loadUserData();
   }
 
-  Future<void> _loadUserId() async {
+  Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getString("userId");
     await _refreshPosts();
@@ -74,17 +76,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final postId = posts[index]['_id'];
-    print("DEBUG: Liking post $postId for user $userId");
-
     try {
       final result = await LikeService.toggleLike(
         postId: postId,
         userId: userId!,
       );
 
-      print("DEBUG: Like API response: $result");
-
-      // Update post state safely
       setState(() {
         posts[index] = {
           ...posts[index],
@@ -93,7 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
         };
       });
     } catch (e) {
-      print("ERROR: Like API failed: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Failed to like post")));
@@ -104,201 +100,236 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
 
-    return SafeArea(
-      child: Column(
-        children: [
-          // Top Bar
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.04,
-              vertical: screenWidth * 0.04,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: CustomSearchBar(
-                    controller: _searchController,
-                    hintText: "Search posts",
-                    onChanged: (value) {},
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.03),
-                GestureDetector(
-                  onTap: _navigateToCreatePost,
-                  child: Container(
-                    height: 48,
-                    width: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white, size: 28),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Posts List
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    onRefresh: _refreshPosts,
-                    child: ListView.separated(
-                      itemCount: posts.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        thickness: 1,
-                        height: 30,
-                        color: Colors.grey,
+    return Scaffold(
+      drawer: AppDrawer(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Bar
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.04,
+                vertical: screenWidth * 0.04,
+              ),
+              child: Row(
+                children: [
+                  // Menu icon
+                  Builder(
+                    builder: (context) => GestureDetector(
+                      onTap: () {
+                        Scaffold.of(context).openDrawer();
+                      },
+                      child: Container(
+                        height: 48,
+                        width: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(Icons.menu, color: Colors.black),
                       ),
-                      itemBuilder: (context, index) {
-                        final post = posts[index];
-                        final user = post['userId'];
-                        final description = post['description'] ?? '';
-                        final userName = user['fullName'] ?? 'Unknown';
+                    ),
+                  ),
+                  const SizedBox(width: 8),
 
-                        return Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.04,
-                            vertical: screenWidth * 0.02,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // User Info
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFF2196F3,
-                                      ).withOpacity(0.11),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 22,
-                                      backgroundImage:
-                                          (user['profilePicture'] ?? '')
-                                              .isNotEmpty
-                                          ? NetworkImage(user['profilePicture'])
-                                          : null,
-                                      child:
-                                          (user['profilePicture'] ?? '').isEmpty
-                                          ? const Icon(Icons.person)
-                                          : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        userName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      if (post['location'] != null)
-                                        Text(
-                                          post['location'],
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                  // Search Bar
+                  Expanded(
+                    child: CustomSearchBar(
+                      controller: _searchController,
+                      hintText: "Search posts",
+                      onChanged: (value) {},
+                    ),
+                  ),
 
-                              const SizedBox(height: 10),
+                  SizedBox(width: screenWidth * 0.03),
 
-                              // Post Image
-                              // Post Image
-                              if (post['imageUrl'] != null)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: CachedNetworkImage(
-                                    imageUrl: post['imageUrl'],
-                                    width: double.infinity,
-                                    height: 240,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        const Icon(
-                                          Icons.broken_image,
-                                          size: 50,
-                                        ),
-                                  ),
-                                ),
+                  // Create Post Button
+                  GestureDetector(
+                    onTap: _navigateToCreatePost,
+                    child: Container(
+                      height: 48,
+                      width: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-                              const SizedBox(height: 10),
+            // Posts List
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : RefreshIndicator(
+                      onRefresh: _refreshPosts,
+                      child: ListView.separated(
+                        itemCount: posts.length,
+                        separatorBuilder: (context, index) => const Divider(
+                          thickness: 1,
+                          height: 30,
+                          color: Colors.grey,
+                        ),
+                        itemBuilder: (context, index) {
+                          final post = posts[index];
+                          final user = post['userId'];
+                          final description = post['description'] ?? '';
+                          final userName = user['fullName'] ?? 'Unknown';
 
-                              // Like and Share Row
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () => _toggleLike(index),
-                                        child: Icon(
-                                          post['liked'] == true
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color: post['liked'] == true
-                                              ? Colors.red
-                                              : Colors.black,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text("${post['likesCount'] ?? 0}"),
-                                    ],
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.share),
-                                    onPressed: () {
-                                      Share.share(
-                                        '${post['description'] ?? ''}\n${post['imageUrl'] ?? ''}',
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // Description
-                              RichText(
-                                text: TextSpan(
-                                  text: "$userName ",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                    fontSize: 16,
-                                  ),
+                          return Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.04,
+                              vertical: screenWidth * 0.02,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // User Info
+                                Row(
                                   children: [
-                                    TextSpan(
-                                      text: description,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.normal,
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFF2196F3,
+                                        ).withOpacity(0.11),
+                                        shape: BoxShape.circle,
                                       ),
+                                      child: CircleAvatar(
+                                        radius: 22,
+                                        backgroundImage:
+                                            (user['profilePicture'] ?? '')
+                                                .isNotEmpty
+                                            ? NetworkImage(
+                                                user['profilePicture'],
+                                              )
+                                            : null,
+                                        child:
+                                            (user['profilePicture'] ?? '')
+                                                .isEmpty
+                                            ? const Icon(Icons.person)
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          userName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        if (post['location'] != null)
+                                          Text(
+                                            post['location'],
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+
+                                const SizedBox(height: 10),
+
+                                // Post Image
+                                if (post['imageUrl'] != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: CachedNetworkImage(
+                                      imageUrl: post['imageUrl'],
+                                      width: double.infinity,
+                                      height: 240,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                      errorWidget: (context, url, error) =>
+                                          const Icon(
+                                            Icons.broken_image,
+                                            size: 50,
+                                          ),
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 10),
+
+                                // Like and Share Row
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () => _toggleLike(index),
+                                          child: Icon(
+                                            post['liked'] == true
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color: post['liked'] == true
+                                                ? Colors.red
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text("${post['likesCount'] ?? 0}"),
+                                      ],
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.share),
+                                      onPressed: () {
+                                        Share.share(
+                                          '${post['description'] ?? ''}\n${post['imageUrl'] ?? ''}',
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                // Description
+                                RichText(
+                                  text: TextSpan(
+                                    text: "$userName :- ",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: description,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

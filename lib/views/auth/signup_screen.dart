@@ -76,10 +76,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (status == 200) {
         // Save token, name, and empty photoUrl
         await AuthService.saveUserData(
-          token: body['token'],
-          userId: body['user']['id'], // add this
-          name: body['user']['fullName'],
-          photoUrl: "", // no image for manual signup
+          context: context, // <-- Pass context here
+          token: body["token"],
+          userId: body['user']['id'],
+          name: (body['user']['fullName'] ?? "") as String,
+          photoUrl: (body['user']['profilePicture'] ?? "") as String,
         );
 
         fullNameController.clear();
