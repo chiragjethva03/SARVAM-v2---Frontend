@@ -32,11 +32,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sarvam',
-      theme: AppTheme.lightTheme,
-      home: OnboardingScreen(),
-      debugShowCheckedModeBanner: false,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent, // Detect taps on empty space
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
+      child: MaterialApp(
+        title: 'Sarvam',
+        theme: AppTheme.lightTheme,
+        home: OnboardingScreen(),
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }

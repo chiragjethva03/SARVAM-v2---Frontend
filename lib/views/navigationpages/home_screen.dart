@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 48,
                       decoration: BoxDecoration(
                         color: Colors.blue,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                       child: const Icon(
                         Icons.add,
@@ -305,13 +305,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // Description
                                 RichText(
                                   text: TextSpan(
-                                    text: "$userName :- ",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                      fontSize: 16,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontSize: 16),
                                     children: [
+                                      TextSpan(
+                                        text: "$userName :- ",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       TextSpan(
                                         text: description,
                                         style: const TextStyle(

@@ -12,93 +12,94 @@ class AppDrawer extends StatelessWidget {
         final fullName = userProvider.fullName ?? 'Guest';
         final profilePicture = userProvider.profilePicture ?? '';
 
-        return Drawer(
-          child: Column(
-            children: [
-              // Custom Header (no divider line)
-              Container(
-                height: 200, // same as DrawerHeader
-                width: double.infinity,
-                color: const Color(0xFF2196F3).withOpacity(0.11),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.center, // center like DrawerHeader
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundImage: profilePicture.isNotEmpty
-                            ? NetworkImage(profilePicture)
-                            : null,
-                        child: profilePicture.isEmpty
-                            ? const Icon(Icons.person)
-                            : null,
+        return ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topRight: Radius.circular(45),
+            bottomRight: Radius.circular(45),
+          ),
+          child: Drawer(
+             child: Column(
+              children: [
+                // Custom Header
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2196F3).withOpacity(0.11),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(32),
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 60),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundImage: profilePicture.isNotEmpty
+                                ? NetworkImage(profilePicture)
+                                : null,
+                            child: profilePicture.isEmpty
+                                ? const Icon(Icons.person)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  fullName,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  "Get Ready for Adventure.!",
+                                  style: TextStyle(fontSize: 20),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              fullName,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              "Get Ready for Adventure.!",
-                              style: TextStyle(fontSize: 20),
-                            ),
-                          ],
-                        ),
+                    ),
+                  ),
+                ),
+                // Menu Items
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: const [
+                      ListTile(
+                        leading: Icon(Icons.info_outline),
+                        title: Text("About"),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.privacy_tip_outlined),
+                        title: Text("Privacy Policy"),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.share),
+                        title: Text("Share with Friends"),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.description_outlined),
+                        title: Text("Terms and Conditions"),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.support_agent),
+                        title: Text("Help & Support"),
                       ),
                     ],
                   ),
                 ),
-              ),
-              // Menu Items
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text("About"),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.privacy_tip_outlined),
-                title: const Text("Privacy Policy"),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.share),
-                title: const Text("Share with Friends"),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.description_outlined),
-                title: const Text("Terms and Conditions"),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.support_agent),
-                title: const Text("Help & Support"),
-                onTap: () {},
-              ),
-
-              const Spacer(),
-
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: const [
-                    Icon(Icons.camera_alt, color: Colors.pink),
-                    Icon(Icons.linked_camera, color: Colors.blue),
-                    Icon(Icons.public, color: Colors.black),
-                    Icon(Icons.play_circle_fill, color: Colors.red),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
