@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 
-import './navigationpages/account_screen.dart';
+import 'navigationpages/account/account_screen.dart';
 import './navigationpages/booking_screen.dart';
 import './navigationpages/expense_screen.dart';
 import './navigationpages/home_screen.dart';
@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage> {
     BookingScreen(),
     ExpenseScreen(),
     MapScreen(),
-    AccountScreen(),
+    AccountPage(),
   ];
 
   void _onItemTapped(int index) {

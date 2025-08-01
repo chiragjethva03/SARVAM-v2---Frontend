@@ -50,23 +50,22 @@ class PostService {
 
   /// Fetch all posts (with populated user info)
   static Future<List<dynamic>> fetchPosts({String? userId}) async {
-  final query = userId != null ? '?userId=$userId' : '';
-  final url = Uri.parse('${ApiConfig.baseUrl}/posts$query');
-  final response = await http.get(url);
+    final query = userId != null ? '?userId=$userId' : '';
+    final url = Uri.parse('${ApiConfig.baseUrl}/posts$query');
+    final response = await http.get(url);
 
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    return data['posts'];
-  } else {
-    throw Exception('Failed to fetch posts');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['posts'];
+    } else {
+      throw Exception('Failed to fetch posts');
+    }
   }
 }
 
-
-}
-
 class LikeService {
-  static const String baseUrl = '${ApiConfig.baseUrl}'; // replace with your API base URL
+  static const String baseUrl =
+      '${ApiConfig.baseUrl}'; // replace with your API base URL
 
   static Future<Map<String, dynamic>> toggleLike({
     required String postId,
@@ -86,4 +85,3 @@ class LikeService {
     }
   }
 }
-
