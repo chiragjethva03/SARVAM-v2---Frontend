@@ -9,6 +9,7 @@ import '../../auth/signin_screen.dart';
 import '../../../providers/user_provider.dart';
 import '../../debug_utils.dart';
 import 'account_settings_sheet.dart';
+import 'my_activity_screen.dart';
 import 'help_sheet.dart';
 
 class AccountPage extends StatefulWidget {
@@ -182,7 +183,14 @@ class _AccountPageState extends State<AccountPage> {
             _buildListTile(
               icon: Icons.article,
               title: "My Activity",
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MyActivityScreen(),
+                  ),
+                );
+              },
             ),
             _buildListTile(
               icon: Icons.settings,

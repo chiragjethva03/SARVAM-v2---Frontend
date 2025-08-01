@@ -38,35 +38,41 @@ class AccountSettingsSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Logout Button
-          ListTile(
-            tileColor: const Color(0xFF2196F3).withOpacity(0.11), // 11% opacity
-            shape: RoundedRectangleBorder(
+          // Logout Button with background
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF2196F3).withOpacity(0.11),
               borderRadius: BorderRadius.circular(12),
             ),
-            leading: const Icon(Icons.logout, color: Colors.black),
-            title: const Text(
-              "Logout",
-              style: TextStyle(color: Colors.black),
+            child: ListTile(
+              leading: const Icon(Icons.logout, color: Colors.black),
+              title: const Text(
+                "Logout",
+                style: TextStyle(color: Colors.black),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios,
+                  size: 16, color: Colors.black),
+              onTap: onLogout,
             ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black),
-            onTap: onLogout,
           ),
           const SizedBox(height: 12),
 
-          // Delete Account Button
-          ListTile(
-            tileColor: const Color(0xFFFF0000).withOpacity(0.30), // 30% opacity
-            shape: RoundedRectangleBorder(
+          // Delete Account Button with background
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF0000).withOpacity(0.20),
               borderRadius: BorderRadius.circular(12),
             ),
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text(
-              "Delete Account",
-              style: TextStyle(color: Colors.red),
+            child: ListTile(
+              leading: const Icon(Icons.delete_forever),
+              title: const Text(
+                "Delete Account",
+               
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios,
+                  size: 16),
+              onTap: onDelete,
             ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
-            onTap: onDelete,
           ),
         ],
       ),

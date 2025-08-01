@@ -50,17 +50,24 @@ class PostService {
 
   /// Fetch all posts (with populated user info)
   static Future<List<dynamic>> fetchPosts({String? userId}) async {
-    final query = userId != null ? '?userId=$userId' : '';
-    final url = Uri.parse('${ApiConfig.baseUrl}/posts$query');
-    final response = await http.get(url);
+  final query = userId != null ? '?userId=$userId' : '';
+  final url = Uri.parse('${ApiConfig.baseUrl}/posts$query');
+  final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['posts'];
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+
+    // Safely handle missing or invalid "posts"
+    if (data is Map<String, dynamic> && data['posts'] is List) {
+      return data['posts'] as List;
     } else {
-      throw Exception('Failed to fetch posts');
+      return []; // Return empty list if "posts" key missing
     }
+  } else {
+    throw Exception('Failed to fetch posts: ${response.statusCode}');
   }
+}
+
 }
 
 class LikeService {

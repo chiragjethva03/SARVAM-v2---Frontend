@@ -86,4 +86,8 @@ class AuthService {
     // Clear provider
     Provider.of<UserProvider>(context, listen: false).clearUser();
   }
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
 }
