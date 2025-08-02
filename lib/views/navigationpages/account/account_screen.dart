@@ -1,16 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/account_api.dart';
 import '../../auth/signin_screen.dart';
-import '../../../providers/user_provider.dart';
 import '../../debug_utils.dart';
 import 'account_settings_sheet.dart';
 import 'my_activity_screen.dart';
 import 'help_sheet.dart';
+import 'personal_details_sheet.dart';
+import 'change_password_sheet.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -22,7 +22,12 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+
   String? _email;
+  String? _fullName;
+  String? _mobileNumber;
+  String? _profilePic;
+  String? _authProvider; // NEW
 
   @override
   void initState() {
@@ -34,11 +39,16 @@ class _AccountPageState extends State<AccountPage> {
     final prefs = await SharedPreferences.getInstance();
     final emailFromPrefs = prefs.getString('email');
 
-    // Optionally fetch latest details from API (already built)
+    // Fetch user details from API
     final userDetails = await AccountApi.fetchUserDetails();
 
     setState(() {
       _email = userDetails?['email'] ?? emailFromPrefs;
+      _fullName = userDetails?['fullName'] ?? "";
+      _mobileNumber = userDetails?['mobileNumber'];
+      _profilePic = userDetails?['profilePicture'] ?? "";
+      _authProvider =
+          userDetails?['authProvider'] ?? "manual"; // store provider
     });
   }
 
@@ -88,24 +98,19 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-
-    final fullName = userProvider.fullName ?? "";
-    final profilePic = userProvider.profilePicture ?? "";
+    final fullName = _fullName ?? "";
+    final profilePic = _profilePic ?? "";
 
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Top Section
-            // Header with background and centered profile picture
-            // Header with background and centered profile picture
+            // Header section
             SizedBox(
-              height: 260, // total height for header section
+              height: 260,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // Background image
                   Container(
                     height: 180,
                     width: double.infinity,
@@ -116,8 +121,6 @@ class _AccountPageState extends State<AccountPage> {
                       ),
                     ),
                   ),
-
-                  // Centered profile image, overlapping the background
                   Positioned(
                     top: 130,
                     left: 0,
@@ -173,13 +176,67 @@ class _AccountPageState extends State<AccountPage> {
             _buildListTile(
               icon: Icons.badge,
               title: "Personal Details",
-              onTap: () {},
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  builder: (context) {
+                    return PersonalDetailsSheet(
+                      fullName: _fullName ?? "",
+                      email: _email ?? "",
+                      mobileNumber: _mobileNumber,
+                      onSave: (newFullName, newMobile) {
+                        // Update state after saving
+                        setState(() {
+                          _fullName = newFullName;
+                          if (_mobileNumber == null || _mobileNumber!.isEmpty) {
+                            _mobileNumber = newMobile;
+                          }
+                        });
+                      },
+                    );
+                  },
+                );
+              },
             ),
             _buildListTile(
               icon: Icons.security,
               title: "Password and Security",
-              onTap: () {},
+              onTap: () {
+                final authProvider = _authProvider ?? "manual";
+
+                if (authProvider == "google") {
+                  // Show a message instead of opening the sheet
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Password cannot be changed for Google Sign-in accounts.",
+                      ),
+                    ),
+                  );
+                } else {
+                  // Open Change Password sheet for manual accounts
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    builder: (context) {
+                      return const ChangePasswordSheet();
+                    },
+                  );
+                }
+              },
             ),
+
             _buildListTile(
               icon: Icons.article,
               title: "My Activity",
@@ -208,12 +265,12 @@ class _AccountPageState extends State<AccountPage> {
                     return AccountSettingsSheet(
                       onLogout: () {
                         Navigator.pop(context);
-                        _logout(context); // your existing logout method
+                        _logout(context);
                       },
                       onDelete: () async {
                         final success = await AccountApi.deleteAccount();
                         if (success) {
-                          Navigator.pop(context); // close sheet
+                          Navigator.pop(context);
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(

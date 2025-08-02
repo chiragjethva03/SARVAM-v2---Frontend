@@ -1,4 +1,3 @@
-// lib/services/account_api.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +29,75 @@ class AccountApi {
     }
   }
 
+  static Future<bool> updatePersonalDetails({
+    required String fullName,
+    String? mobileNumber,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return false;
+
+      final url = Uri.parse('$baseUrl/user/update-details');
+      final response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({"fullName": fullName, "mobileNumber": mobileNumber}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error updating details: $e");
+      return false;
+    }
+  }
+
+  static Future<Map<String, String>> _authHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  /// New: return success and backend message
+  static Future<Map<String, dynamic>> changePasswordDetailed({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final url = Uri.parse("$baseUrl/user/change-password");
+    final token = await AuthService.getToken();
+
+    try {
+      final res = await http.put(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "currentPassword": currentPassword,
+          "newPassword": newPassword,
+        }),
+      );
+
+      // Always decode body even for non-200
+      final data = jsonDecode(res.body);
+
+      return {
+        "success": data["success"] ?? res.statusCode == 200,
+        "message": data["message"] ?? "Unexpected error",
+      };
+    } catch (e) {
+      print("Error in changePasswordDetailed: $e");
+      return {"success": false, "message": "Something went wrong"};
+    }
+  }
+
   static Future<bool> deleteAccount() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -53,7 +121,6 @@ class AccountApi {
       return false;
     }
   }
-
 
   static Future<List<dynamic>> fetchUserPosts() async {
     final token = await AuthService.getToken(); // if you store token
