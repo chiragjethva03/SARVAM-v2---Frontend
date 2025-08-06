@@ -33,10 +33,6 @@ class HelpSheet extends StatelessWidget {
               icon: const Icon(Icons.call, color: Colors.black),
               onPressed: () => _makePhoneCall(phoneNumber),
             ),
-            IconButton(
-              icon: const Icon(Icons.message, color: Colors.black),
-              onPressed: () => _sendSms(phoneNumber),
-            ),
           ],
         ),
       ),

@@ -11,10 +11,12 @@ import 'my_activity_screen.dart';
 import 'help_sheet.dart';
 import 'personal_details_sheet.dart';
 import 'change_password_sheet.dart';
+import 'GoogleSignInInfoSheet.dart';
+import 'package:provider/provider.dart';
+import '../../../providers/user_provider.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
-
   @override
   State<AccountPage> createState() => _AccountPageState();
 }
@@ -27,7 +29,7 @@ class _AccountPageState extends State<AccountPage> {
   String? _fullName;
   String? _mobileNumber;
   String? _profilePic;
-  String? _authProvider; // NEW
+  String? _authProvider;
 
   @override
   void initState() {
@@ -39,16 +41,14 @@ class _AccountPageState extends State<AccountPage> {
     final prefs = await SharedPreferences.getInstance();
     final emailFromPrefs = prefs.getString('email');
 
-    // Fetch user details from API
     final userDetails = await AccountApi.fetchUserDetails();
 
     setState(() {
       _email = userDetails?['email'] ?? emailFromPrefs;
       _fullName = userDetails?['fullName'] ?? "";
-      _mobileNumber = userDetails?['mobileNumber'];
+      _mobileNumber = userDetails?['phoneNumber'];
       _profilePic = userDetails?['profilePicture'] ?? "";
-      _authProvider =
-          userDetails?['authProvider'] ?? "manual"; // store provider
+      _authProvider = userDetails?['authProvider'] ?? "manual";
     });
   }
 
@@ -69,7 +69,23 @@ class _AccountPageState extends State<AccountPage> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-      // TODO: Upload image to backend
+
+      final newUrl = await AccountApi.uploadProfilePicture(_selectedImage!);
+
+      if (newUrl != null) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.setProfilePicture(newUrl); // ✅ Now this works
+
+        await _loadUserData(); // Optional, based on your app
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile picture updated successfully")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to upload profile picture")),
+        );
+      }
     }
   }
 
@@ -139,7 +155,7 @@ class _AccountPageState extends State<AccountPage> {
                                   : (profilePic.isNotEmpty)
                                   ? NetworkImage(profilePic)
                                   : const AssetImage(
-                                          'assets/images/default_avatar.png',
+                                          'assets/Accountbg/default_avatar.png',
                                         )
                                         as ImageProvider,
                             ),
@@ -163,7 +179,6 @@ class _AccountPageState extends State<AccountPage> {
                 ],
               ),
             ),
-
             Text(
               fullName,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -211,13 +226,14 @@ class _AccountPageState extends State<AccountPage> {
                 final authProvider = _authProvider ?? "manual";
 
                 if (authProvider == "google") {
-                  // Show a message instead of opening the sheet
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Password cannot be changed for Google Sign-in accounts.",
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
                       ),
                     ),
+                    builder: (context) => const GoogleSignInInfoSheet(),
                   );
                 } else {
                   // Open Change Password sheet for manual accounts

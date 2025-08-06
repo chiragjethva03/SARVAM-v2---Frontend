@@ -4,7 +4,7 @@ import '../../../services/account_api.dart';
 class PersonalDetailsSheet extends StatefulWidget {
   final String fullName;
   final String email;
-  final String? mobileNumber;
+  final String? mobileNumber; // still okay to call it mobileNumber in widget
   final Function(String fullName, String? mobileNumber) onSave;
 
   const PersonalDetailsSheet({
@@ -31,6 +31,7 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
     _fullNameController = TextEditingController(text: widget.fullName);
     _mobileController = TextEditingController(text: widget.mobileNumber ?? "");
 
+    // ✅ Enable mobile field only if it's empty
     _mobileEditable =
         widget.mobileNumber == null || widget.mobileNumber!.isEmpty;
   }
@@ -48,12 +49,14 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
     });
 
     final newFullName = _fullNameController.text.trim();
-    final newMobile =
-        _mobileEditable ? _mobileController.text.trim() : widget.mobileNumber;
+    final newMobile = _mobileEditable
+        ? _mobileController.text.trim()
+        : widget.mobileNumber;
 
+    // ✅ Send the correct field name expected by the backend: "phoneNumber"
     final success = await AccountApi.updatePersonalDetails(
       fullName: newFullName,
-      mobileNumber: newMobile,
+      phoneNumber: newMobile, // <-- FIXED
     );
 
     setState(() {
@@ -62,11 +65,16 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
 
     if (success) {
       widget.onSave(newFullName, newMobile);
+
+      // Disable mobile editing if user just added mobile
+      if (_mobileEditable && (newMobile?.isNotEmpty ?? false)) {
+        setState(() {
+          _mobileEditable = false;
+          _mobileController.text = newMobile!;
+        });
+      }
+
       Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update details")),
-      );
     }
   }
 
@@ -79,9 +87,7 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
       prefixIcon: Icon(icon),
       prefixText: prefixText,
       hintText: hint,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 
@@ -110,7 +116,7 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -130,12 +136,19 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
               controller: _mobileController,
               enabled: _mobileEditable,
               keyboardType: TextInputType.phone,
+              style: TextStyle(
+                color: _mobileEditable ? Colors.black : Colors.grey,
+              ),
               decoration: _inputDecoration(
-                hint: "Mobile Number",
+                hint:
+                    widget.mobileNumber == null || widget.mobileNumber!.isEmpty
+                    ? "Mobile Number"
+                    : widget.mobileNumber!, // ✅ show real number if exists
                 icon: Icons.phone_outlined,
                 prefixText: "+91 ",
               ),
             ),
+
             const SizedBox(height: 12),
 
             // Email (read-only)

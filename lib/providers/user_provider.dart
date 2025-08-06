@@ -11,6 +11,12 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setProfilePicture(String newUrl) {
+    profilePicture = newUrl;
+    _savePhotoUrl(newUrl); // Save to shared preferences
+    notifyListeners();
+  }
+
   void clearUser() {
     fullName = null;
     profilePicture = null;
@@ -19,8 +25,13 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    fullName = prefs.getString('name');  // must match the key used in saveUserData
+    fullName = prefs.getString('name');
     profilePicture = prefs.getString('photoUrl');
     notifyListeners();
+  }
+
+  Future<void> _savePhotoUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('photoUrl', url);
   }
 }

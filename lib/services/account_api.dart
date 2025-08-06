@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,30 +30,29 @@ class AccountApi {
     }
   }
 
+  // In services/account_api.dart
   static Future<bool> updatePersonalDetails({
     required String fullName,
-    String? mobileNumber,
+    String? phoneNumber, // ✅ Use exact backend field name
   }) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (token == null) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return false;
 
-      final url = Uri.parse('$baseUrl/user/update-details');
-      final response = await http.put(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({"fullName": fullName, "mobileNumber": mobileNumber}),
-      );
+    final url = Uri.parse('$baseUrl/user/update-details');
+    final response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        "fullName": fullName,
+        "phoneNumber": phoneNumber, // ✅ backend expects this name
+      }),
+    );
 
-      return response.statusCode == 200;
-    } catch (e) {
-      print("Error updating details: $e");
-      return false;
-    }
+    return response.statusCode == 200;
   }
 
   static Future<Map<String, String>> _authHeaders() async {
@@ -151,5 +151,30 @@ class AccountApi {
     );
 
     return response.statusCode == 200;
+  }
+
+  static Future<String?> uploadProfilePicture(File imageFile) async {
+    final token = await AuthService.getToken();
+    final uri = Uri.parse('$baseUrl/user/upload-profile-picture');
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(
+        await http.MultipartFile.fromPath('profilePicture', imageFile.path),
+      );
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    print('Upload response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+      final newUrl = responseData['profilePicture'];
+      print('Updated URL: $newUrl');
+      return newUrl;
+    } else {
+      return null;
+    }
   }
 }
