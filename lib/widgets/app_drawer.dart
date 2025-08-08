@@ -9,7 +9,9 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
-        final fullName = userProvider.fullName ?? 'Guest';
+        final fullName = userProvider.fullName?.isNotEmpty == true
+            ? userProvider.fullName!
+            : 'Guest';
         final profilePicture = userProvider.profilePicture ?? '';
 
         return ClipRRect(
@@ -18,9 +20,9 @@ class AppDrawer extends StatelessWidget {
             bottomRight: Radius.circular(45),
           ),
           child: Drawer(
-             child: Column(
+            child: Column(
               children: [
-                // Custom Header
+                // Drawer Header
                 Container(
                   height: 200,
                   width: double.infinity,
@@ -43,7 +45,7 @@ class AppDrawer extends StatelessWidget {
                                 ? NetworkImage(profilePicture)
                                 : null,
                             child: profilePicture.isEmpty
-                                ? const Icon(Icons.person)
+                                ? const Icon(Icons.person, size: 30)
                                 : null,
                           ),
                           const SizedBox(width: 12),
@@ -54,13 +56,16 @@ class AppDrawer extends StatelessWidget {
                               children: [
                                 Text(
                                   fullName,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
                                   "Get Ready for Adventure.!",
-                                  style: TextStyle(fontSize: 20),
+                                  style: TextStyle(fontSize: 16),
                                 ),
                               ],
                             ),
@@ -70,7 +75,8 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Menu Items
+
+                // Drawer Items
                 Expanded(
                   child: ListView(
                     padding: EdgeInsets.zero,

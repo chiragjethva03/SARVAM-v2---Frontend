@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-class GoogleSignInInfoSheet extends StatelessWidget {
-  const GoogleSignInInfoSheet({super.key});
+class GoogleSignInInfoSheetForImage extends StatelessWidget {
+  const GoogleSignInInfoSheetForImage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
-
+        // color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -17,12 +17,12 @@ class GoogleSignInInfoSheet extends StatelessWidget {
           Icon(Icons.info_outline, size: 40, color: Colors.blue),
           SizedBox(height: 16),
           Text(
-            "Password Change Not Available",
+            "Profile Picture Can Not Change",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 12),
           Text(
-            "Since you've signed in using your Google account, you cannot change your password from this app. To manage your password, please visit your Google Account settings.",
+            "Since you've signed in using your Google account, you cannot change your profile picture from this app. To manage your profile, please visit your Google Account settings.",
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16),
           ),

@@ -14,6 +14,7 @@ import 'change_password_sheet.dart';
 import 'GoogleSignInInfoSheet.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
+import 'GoogleSignInImageChange.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -143,7 +144,22 @@ class _AccountPageState extends State<AccountPage> {
                     right: 0,
                     child: Center(
                       child: GestureDetector(
-                        onTap: _pickImage,
+                        onTap: () {
+                          if (_authProvider == "google") {
+                            showModalBottomSheet(
+                              context: context,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(24),
+                                ),
+                              ),
+                              builder: (context) =>
+                                  const GoogleSignInInfoSheetForImage(), // You already use this for password
+                            );
+                          } else {
+                            _pickImage();
+                          }
+                        },
                         child: Stack(
                           alignment: Alignment.bottomRight,
                           children: [
@@ -179,11 +195,11 @@ class _AccountPageState extends State<AccountPage> {
                 ],
               ),
             ),
+         
             Text(
               fullName,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
             Text(_email ?? "", style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 20),
 

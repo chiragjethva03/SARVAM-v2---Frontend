@@ -33,7 +33,7 @@ class AccountApi {
   // In services/account_api.dart
   static Future<bool> updatePersonalDetails({
     required String fullName,
-    String? phoneNumber, // ✅ Use exact backend field name
+    String? phoneNumber,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -46,13 +46,16 @@ class AccountApi {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        "fullName": fullName,
-        "phoneNumber": phoneNumber, // ✅ backend expects this name
-      }),
+      body: jsonEncode({"fullName": fullName, "phoneNumber": phoneNumber}),
     );
 
-    return response.statusCode == 200;
+    if (response.statusCode == 200) {
+      // Save new name in local preferences too
+      await prefs.setString('name', fullName);
+      return true;
+    }
+
+    return false;
   }
 
   static Future<Map<String, String>> _authHeaders() async {
