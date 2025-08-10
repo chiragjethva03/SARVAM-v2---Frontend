@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'dart:async'; // For TimeoutException
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import '../services/location_service.dart';
 import '../services/post_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -45,70 +45,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         _isGettingLocation = true;
       });
 
-      // Check and request permission
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Location permission denied")),
-          );
-          setState(() => _isGettingLocation = false);
-          return;
-        }
-      }
+      String locationString = await LocationService()
+          .getCurrentLocationString();
 
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Enable location from settings")),
-        );
-        setState(() => _isGettingLocation = false);
-        return;
-      }
-
-      // Check if GPS is enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please enable GPS")),
-        );
-        await Geolocator.openLocationSettings();
-
-        // Wait a moment and check again
-        await Future.delayed(const Duration(seconds: 2));
-        serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) {
-          setState(() => _isGettingLocation = false);
-          return;
-        }
-      }
-
-      // Get position quickly with timeout
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-        timeLimit: const Duration(seconds: 5),
-      );
-
-      // Convert to address
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        final city = place.locality ?? '';
-        final state = place.administrativeArea ?? '';
-        final country = place.country ?? '';
-
-        setState(() {
-          _locationController.text = "$city, $state, $country";
-        });
-      }
+      setState(() {
+        _locationController.text = locationString;
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       setState(() {
         _isGettingLocation = false;
@@ -313,7 +259,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   height: 40,
                   width: screenWidth * 0.25,
                   child: ElevatedButton(
-                    onPressed: _isLoading ||
+                    onPressed:
+                        _isLoading ||
                             _selectedImage == null ||
                             _descriptionController.text.isEmpty ||
                             _locationController.text.isEmpty
