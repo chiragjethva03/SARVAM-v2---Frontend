@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'signin_screen.dart';
 import '../../widgets/auth_widgets.dart';
-import '../../widgets/loading_overlay.dart'; // Add this import
+import '../../widgets/loading_overlay.dart';
 import '../home_page.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -21,12 +21,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? emailError;
   String? passwordError;
 
-  bool _isLoading = false; // Added state for loader
+  bool _isLoading = false;
 
   bool validateForm() {
     bool isValid = true;
 
-    // Full name validation
     if (fullNameController.text.isEmpty) {
       fullNameError = "Full name cannot be empty";
       isValid = false;
@@ -34,7 +33,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       fullNameError = null;
     }
 
-    // Email validation
     if (!emailController.text.endsWith("@gmail.com")) {
       emailError = "Email must end with @gmail.com";
       isValid = false;
@@ -42,7 +40,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       emailError = null;
     }
 
-    // Password validation: 1 uppercase, 1 lowercase, 1 digit, min 8 chars
     final password = passwordController.text;
     final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$');
     if (!passwordRegex.hasMatch(password)) {
@@ -74,9 +71,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final body = result['body'];
 
       if (status == 200) {
-        // Save token, name, and empty photoUrl
         await AuthService.saveUserData(
-          context: context, // <-- Pass context here
+          context: context,
           token: body["token"],
           userId: body['user']['id'],
           name: (body['user']['fullName'] ?? "") as String,
@@ -113,16 +109,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+    // Base width from your Figma or design
+    final baseWidth = 360;
+    final scaleFactor = size.width / baseWidth;
+
+    double scaledFont(double fontSize) => fontSize * scaleFactor;
+
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
-            // Main content
             SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top background and title
                   Stack(
                     children: [
                       Container(
@@ -130,18 +130,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: const Color(0xFF2196F3).withOpacity(0.11),
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(50),
-                            bottomRight: Radius.circular(50),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(50 * scaleFactor),
+                            bottomRight: Radius.circular(50 * scaleFactor),
                           ),
                         ),
                       ),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(
-                          top: 32,
-                          left: 24,
-                          right: 24,
-                          bottom: 32,
+                          top: 32 * scaleFactor,
+                          left: 24 * scaleFactor,
+                          right: 24 * scaleFactor,
+                          bottom: 32 * scaleFactor,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,25 +149,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             Text(
                               'Sign Up',
                               style: TextStyle(
-                                fontSize: 35,
+                                fontSize: scaledFont(35),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 12),
+                            SizedBox(height: 12 * scaleFactor),
                             Text(
                               'Signup and Discover your next Great Adventure !',
-                              style: TextStyle(fontSize: 25),
+                              style: TextStyle(fontSize: scaledFont(25)),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
-
-                  // Input fields
+                  SizedBox(height: 40 * scaleFactor),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    padding: EdgeInsets.symmetric(horizontal: 24.0 * scaleFactor),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -175,45 +173,52 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           controller: fullNameController,
                           errorText: fullNameError,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20 * scaleFactor),
                         EmailPasswordFields(
                           emailController: emailController,
                           passwordController: passwordController,
                           emailError: emailError,
                           passwordError: passwordError,
                         ),
-                        const SizedBox(height: 20),
-
+                        SizedBox(height: 20 * scaleFactor),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: handleSignUp,
-                            child: const Text('Create account'),
+                            child: Text(
+                              'Create account',
+                              style: TextStyle(fontSize: scaledFont(16)),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-
+                        SizedBox(height: 12 * scaleFactor),
                         Row(
-                          children: const [
-                            Expanded(child: Divider()),
+                          children: [
+                            const Expanded(child: Divider()),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text("or"),
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: 8.0 * scaleFactor),
+                              child: Text(
+                                "or",
+                                style: TextStyle(fontSize: scaledFont(14)),
+                              ),
                             ),
-                            Expanded(child: Divider()),
+                            const Expanded(child: Divider()),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20 * scaleFactor),
                         const GoogleButton(),
-                        const SizedBox(height: 32),
-
+                        SizedBox(height: 32 * scaleFactor),
                         Center(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 "Already have an account ? ",
-                                style: TextStyle(fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: scaledFont(14),
+                                ),
                               ),
                               GestureDetector(
                                 onTap: () {
@@ -225,11 +230,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                   );
                                 },
-                                child: const Text(
+                                child: Text(
                                   "Sign In",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue,
+                                    fontSize: scaledFont(14),
                                   ),
                                 ),
                               ),
@@ -242,8 +248,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ],
               ),
             ),
-
-            // Loader overlay
             LoadingOverlay(isLoading: _isLoading),
           ],
         ),

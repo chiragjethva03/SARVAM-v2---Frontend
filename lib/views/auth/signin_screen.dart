@@ -1,9 +1,8 @@
-// File: lib/screens/auth/sign_in_screen.dart
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/loading_overlay.dart'; // Import your loading overlay
+import '../../widgets/loading_overlay.dart';
 import '.././home_page.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -20,7 +19,7 @@ class _SignInScreenState extends State<SignInScreen> {
   String? emailError;
   String? passwordError;
 
-  bool _isLoading = false; // Added loader state
+  bool _isLoading = false;
 
   bool validateForm() {
     bool isValid = true;
@@ -59,10 +58,8 @@ class _SignInScreenState extends State<SignInScreen> {
       if (response["status"] == 200) {
         final body = response["body"];
 
-        // Save token, name, and an empty photoUrl for manual login
-        // Save user data AND update Provider
         await AuthService.saveUserData(
-          context: context, // <--- IMPORTANT
+          context: context,
           token: body["token"],
           userId: body['user']['id'],
           name: (body['user']['fullName'] ?? "") as String,
@@ -96,6 +93,9 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
+    final textScale = MediaQuery.of(context).textScaleFactor;
 
     return Scaffold(
       body: SafeArea(
@@ -108,22 +108,22 @@ class _SignInScreenState extends State<SignInScreen> {
                   Stack(
                     children: [
                       Container(
-                        height: size.height * 0.25,
+                        height: screenHeight * 0.25,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: const Color(0xFF2196F3).withOpacity(0.11),
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(50),
-                            bottomRight: Radius.circular(50),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(screenHeight * 0.06),
+                            bottomRight: Radius.circular(screenHeight * 0.06),
                           ),
                         ),
                       ),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(
-                          top: 32,
-                          left: 24,
-                          right: 24,
-                          bottom: 32,
+                          top: screenHeight * 0.04,
+                          left: screenWidth * 0.06,
+                          right: screenWidth * 0.06,
+                          bottom: screenHeight * 0.04,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,48 +131,59 @@ class _SignInScreenState extends State<SignInScreen> {
                             Text(
                               'Sign In',
                               style: TextStyle(
-                                fontSize: 35,
+                                fontSize: 35 * (screenWidth / 360) * textScale,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 12),
+                            SizedBox(height: screenHeight * 0.015),
                             Text(
                               'Welcome back, your next\nAdventure awaits !',
-                              style: TextStyle(fontSize: 25),
+                              style: TextStyle(
+                                fontSize:
+                                    20 * (screenWidth / 360) * textScale,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: screenHeight * 0.05),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Email & Password fields
                         EmailPasswordFields(
                           emailController: emailController,
                           passwordController: passwordController,
                           emailError: emailError,
                           passwordError: passwordError,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: screenHeight * 0.025),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: handleLogin,
-                            child: const Text('Login'),
+                            child: Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize:
+                                    16 * (screenWidth / 360) * textScale,
+                              ),
+                            ),
                           ),
                         ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {},
-                            child: const Text(
+                            child: Text(
                               'Forgot password ?',
                               style: TextStyle(
+                                fontSize:
+                                    14 * (screenWidth / 360) * textScale,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -180,25 +191,36 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                         Row(
-                          children: const [
-                            Expanded(child: Divider()),
+                          children: [
+                            const Expanded(child: Divider()),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text("or"),
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                              child: Text(
+                                "or",
+                                style: TextStyle(
+                                  fontSize:
+                                      14 * (screenWidth / 360) * textScale,
+                                ),
+                              ),
                             ),
-                            Expanded(child: Divider()),
+                            const Expanded(child: Divider()),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: screenHeight * 0.025),
                         const GoogleButton(),
-                        const SizedBox(height: 32),
+                        SizedBox(height: screenHeight * 0.04),
                         Center(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 "Don’t have an account yet ? ",
-                                style: TextStyle(fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontSize:
+                                      14 * (screenWidth / 360) * textScale,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                               GestureDetector(
                                 onTap: () {
@@ -210,9 +232,11 @@ class _SignInScreenState extends State<SignInScreen> {
                                     ),
                                   );
                                 },
-                                child: const Text(
+                                child: Text(
                                   "Sign Up",
                                   style: TextStyle(
+                                    fontSize:
+                                        14 * (screenWidth / 360) * textScale,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue,
                                   ),
@@ -227,7 +251,6 @@ class _SignInScreenState extends State<SignInScreen> {
                 ],
               ),
             ),
-            // Loader overlay
             LoadingOverlay(isLoading: _isLoading),
           ],
         ),

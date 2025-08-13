@@ -4,7 +4,7 @@ import '../providers/user_provider.dart';
 
 import 'navigationpages/account/account_screen.dart';
 import './navigationpages/booking_screen.dart';
-import './navigationpages/expense_screen.dart';
+import 'navigationpages/expense/expense_screen.dart';
 import './navigationpages/home_screen.dart';
 import './navigationpages/map_screen.dart';
 
