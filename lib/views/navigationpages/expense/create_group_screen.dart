@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'splitamountscreen.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -13,6 +14,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final TextEditingController _groupNameController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
 
+  static const Color _primaryBlue = Color(0xFF2196F3);
+  static const Color _dividerGray = Color(0xFFBDBDBD);
+
   final List<Map<String, dynamic>> _categories = const [
     {"name": "Travel", "icon": Icons.flight_takeoff},
     {"name": "Food", "icon": Icons.restaurant},
@@ -24,6 +28,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   String _selectedCategory = "Travel";
 
   List<Map<String, dynamic>> _participants = [];
+  String? _selectedPayer;
+  String _splitMethod = "Split equally";
 
   @override
   void initState() {
@@ -31,62 +37,261 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     _loadCurrentUser();
   }
 
+  @override
+  void dispose() {
+    _groupNameController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCurrentUser() async {
     final prefs = await SharedPreferences.getInstance();
-    final currentUser = prefs.getString('username') ?? 'You';
+    final currentUser = prefs.getString('fullName') ?? 'You';
     setState(() {
       _participants = [
-        {"name": currentUser, "paid": true}
+        {"name": currentUser, "isCurrent": true},
       ];
+      _selectedPayer = currentUser;
     });
   }
 
   void _addParticipant(String name) {
     if (name.trim().isEmpty) return;
     setState(() {
-      _participants.add({"name": name.trim(), "paid": false});
-    });
-  }
-
-  void _togglePaid(int index) {
-    setState(() {
-      for (var i = 0; i < _participants.length; i++) {
-        _participants[i]["paid"] = false;
-      }
-      _participants[index]["paid"] = true;
+      _participants.add({"name": name.trim(), "isCurrent": false});
     });
   }
 
   void _removeParticipant(int index) {
     setState(() {
+      final removedName = _participants[index]["name"] as String;
       _participants.removeAt(index);
+      if (_selectedPayer == removedName && _participants.isNotEmpty) {
+        _selectedPayer = _participants.first["name"] as String;
+      }
     });
   }
 
   Future<void> _pickContact() async {
-    // Ask for permission via flutter_contacts
     final granted = await FlutterContacts.requestPermission();
     if (!granted) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Contacts permission denied")),
       );
       return;
     }
 
-    // Open native picker
     final picked = await FlutterContacts.openExternalPick();
-
     if (picked == null) return;
 
-    // Get full contact by id to ensure displayName is complete
     final full = await FlutterContacts.getContact(picked.id);
     final String name = full?.displayName ?? picked.displayName;
-
     _addParticipant(name);
+
+    // Show a serious attention-grabbing dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.info_outline, color: Colors.blue),
+              SizedBox(width: 8),
+              Text("Important"),
+            ],
+          ),
+          content: Text(
+            "$name has been added.\n\n"
+            "Tell your friend to install the app and update their number in profile "
+            "for the best experience when splitting expenses.",
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Got it"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _participantRow({
+    required int index,
+    required String name,
+    required bool isCurrent,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF263238),
+            ),
+          ),
+        ),
+        if (isCurrent)
+          IconButton(
+            onPressed: _pickContact,
+            icon: const Icon(
+              Icons.person_add_alt_1,
+              color: _primaryBlue,
+              size: 20,
+            ),
+            splashRadius: 16,
+            tooltip: 'Add participant',
+          )
+        else
+          IconButton(
+            onPressed: () => _removeParticipant(index),
+            icon: const Icon(Icons.delete_rounded, color: Colors.red, size: 20),
+            splashRadius: 16,
+            tooltip: 'Remove',
+          ),
+      ],
+    );
+  }
+
+  Widget _participantsBlock() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Participants",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF212121), width: 1),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < _participants.length; i++) ...[
+                _participantRow(
+                  index: i,
+                  name: _participants[i]["name"] as String,
+                  isCurrent: _participants[i]["isCurrent"] as bool,
+                ),
+                if (i != _participants.length - 1)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Divider(
+                      color: _dividerGray,
+                      thickness: 1,
+                      height: 1,
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _paidAndSplitRow() {
+    final defaultColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () async {
+              String? selected = await showModalBottomSheet<String>(
+                context: context,
+                builder: (context) {
+                  return ListView(
+                    shrinkWrap: true,
+                    children: _participants.map((p) {
+                      bool isSelected = p["name"] == _selectedPayer;
+                      return ListTile(
+                        title: Text(p["name"]),
+                        trailing: isSelected
+                            ? const Icon(Icons.check, color: Colors.green)
+                            : null,
+                        onTap: () => Navigator.pop(context, p["name"]),
+                      );
+                    }).toList(),
+                  );
+                },
+              );
+              if (selected != null) {
+                setState(() => _selectedPayer = selected);
+              }
+            },
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  color: defaultColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                children: [
+                  const TextSpan(text: "Paid by "),
+                  TextSpan(
+                    text: _selectedPayer ?? "",
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Text("·"),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      SplitAmountScreen(participants: _participants),
+                ),
+              );
+
+              if (result != null) {
+                setState(() => _splitMethod = result);
+              }
+            },
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  color: defaultColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                children: [
+                  TextSpan(
+                    text: _splitMethod,
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final dividerColor = Theme.of(context).dividerColor;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -104,7 +309,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Group Name
               TextField(
                 controller: _groupNameController,
                 decoration: InputDecoration(
@@ -113,14 +317,20 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
 
-              // Amount + Categories in one row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(
+                  Flexible(
+                    flex: 4,
                     child: TextField(
                       controller: _amountController,
                       keyboardType: TextInputType.number,
@@ -131,29 +341,46 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
+                  const SizedBox(width: 12),
+                  Flexible(
+                    flex: 6,
                     child: Container(
+                      height: 52,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(color: dividerColor),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedCategory,
+                          isExpanded: true,
                           items: _categories.map((cat) {
                             return DropdownMenuItem<String>(
                               value: cat["name"] as String,
                               child: Row(
                                 children: [
-                                  Icon(cat["icon"] as IconData,
-                                      color: Theme.of(context).primaryColor),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    cat["icon"] as IconData,
+                                    color: _primaryBlue,
+                                  ),
                                   const SizedBox(width: 10),
-                                  Text(cat["name"] as String),
+                                  Expanded(
+                                    child: Text(
+                                      cat["name"] as String,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             );
@@ -169,82 +396,19 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Participants
-              const Text("Participants", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              ..._participants.asMap().entries.map((entry) {
-                final index = entry.key;
-                final participant = entry.value;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(participant["name"] as String),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => _togglePaid(index),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: (participant["paid"] as bool)
-                                    ? Theme.of(context).primaryColor.withOpacity(0.2)
-                                    : Theme.of(context).dividerColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                "Paid",
-                                style: TextStyle(
-                                  color: (participant["paid"] as bool)
-                                      ? Theme.of(context).primaryColor
-                                      : Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (index != 0) // do not remove current user
-                            GestureDetector(
-                              onTap: () => _removeParticipant(index),
-                              child: const Icon(Icons.remove_circle, color: Colors.red),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }),
+              _participantsBlock(),
+              _paidAndSplitRow(),
 
-              GestureDetector(
-                onTap: _pickContact,
-                child: Text(
-                  "Add Participants",
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 30),
-
-              // Create Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Backend logic here
-                    // Access values:
-                    // _groupNameController.text, _amountController.text, _selectedCategory, _participants
-                  },
+                  onPressed: () {},
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryBlue,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
@@ -252,7 +416,11 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                   child: const Text(
                     "Create",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
