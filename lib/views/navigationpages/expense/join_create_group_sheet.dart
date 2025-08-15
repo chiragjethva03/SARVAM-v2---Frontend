@@ -83,7 +83,7 @@ class JoinCreateGroupSheet extends StatelessWidget {
             },
           ),
           
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),//
 
           // Join Existing Group
           _buildActionTile(
