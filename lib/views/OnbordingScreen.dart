@@ -4,6 +4,7 @@ import 'dart:async';
 import 'IntroScreens/onboarding_pages.dart';
 import 'auth/signin_screen.dart';
 import 'home_page.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class OnboardingScreen extends StatefulWidget {
   @override
@@ -22,15 +23,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Check if token is stored (user already logged in)
+    // 1. Check if token is stored
     final token = prefs.getString('token');
 
     if (token != null && token.isNotEmpty) {
-      // Token found -> Directly go to HomePage
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
-      return;
+      // ✅ Check expiry
+      bool isExpired = JwtDecoder.isExpired(token);
+
+      if (!isExpired) {
+        // Token valid -> Directly go to HomePage
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+        return;
+      } else {
+        // Token expired -> clear token & go to Login
+        await prefs.remove('token');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const SignInScreen()),
+        );
+        return;
+      }
     }
 
     // 2. If no token, check intro logic

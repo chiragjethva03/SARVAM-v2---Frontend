@@ -6,7 +6,7 @@ import 'navigationpages/account/account_screen.dart';
 import './navigationpages/booking_screen.dart';
 import 'navigationpages/expense/expense_screen.dart';
 import './navigationpages/home_screen.dart';
-import './navigationpages/map_screen.dart';
+import 'navigationpages/map/map_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
