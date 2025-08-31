@@ -27,7 +27,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final token = prefs.getString('token');
 
     if (token != null && token.isNotEmpty) {
-      // ✅ Check expiry
+      // ✅ Check expirya
       bool isExpired = JwtDecoder.isExpired(token);
 
       if (!isExpired) {
