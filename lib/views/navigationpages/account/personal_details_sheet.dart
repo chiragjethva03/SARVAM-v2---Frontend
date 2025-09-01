@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../providers/user_provider.dart';
 import '../../../services/account_api.dart';
+import 'package:provider/provider.dart';
 
 class PersonalDetailsSheet extends StatefulWidget {
   final String fullName;
@@ -44,39 +46,42 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
   }
 
   Future<void> _saveDetails() async {
-    setState(() {
-      _loading = true;
-    });
+  setState(() {
+    _loading = true;
+  });
 
-    final newFullName = _fullNameController.text.trim();
-    final newMobile = _mobileEditable
-        ? _mobileController.text.trim()
-        : widget.mobileNumber;
+  final newFullName = _fullNameController.text.trim();
+  final newMobile = _mobileEditable
+      ? _mobileController.text.trim()
+      : widget.mobileNumber;
 
-    // ✅ Send the correct field name expected by the backend: "phoneNumber"
-    final success = await AccountApi.updatePersonalDetails(
-      fullName: newFullName,
-      phoneNumber: newMobile, // <-- FIXED
-    );
+  final success = await AccountApi.updatePersonalDetails(
+    fullName: newFullName,
+    phoneNumber: newMobile,
+  );
 
-    setState(() {
-      _loading = false;
-    });
+  setState(() {
+    _loading = false;
+  });
 
-    if (success) {
-      widget.onSave(newFullName, newMobile);
+  if (success) {
+    // ✅ Update provider instantly
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    userProvider.setUser(newFullName, userProvider.profilePicture ?? "");
 
-      // Disable mobile editing if user just added mobile
-      if (_mobileEditable && (newMobile?.isNotEmpty ?? false)) {
-        setState(() {
-          _mobileEditable = false;
-          _mobileController.text = newMobile!;
-        });
-      }
+    widget.onSave(newFullName, newMobile);
 
-      Navigator.pop(context);
+    if (_mobileEditable && (newMobile?.isNotEmpty ?? false)) {
+      setState(() {
+        _mobileEditable = false;
+        _mobileController.text = newMobile!;
+      });
     }
+
+    Navigator.pop(context);
   }
+}
+
 
   InputDecoration _inputDecoration({
     required String hint,

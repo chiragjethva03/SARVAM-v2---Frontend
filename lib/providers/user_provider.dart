@@ -5,9 +5,12 @@ class UserProvider extends ChangeNotifier {
   String? fullName;
   String? profilePicture;
 
-  void setUser(String name, String pic) {
+  void setUser(String name, String pic) async {
     fullName = name;
     profilePicture = pic;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('name', name);
+    await prefs.setString('photoUrl', pic);
     notifyListeners();
   }
 
