@@ -34,6 +34,7 @@ class AccountApi {
   static Future<bool> updatePersonalDetails({
     required String fullName,
     String? phoneNumber,
+    
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
