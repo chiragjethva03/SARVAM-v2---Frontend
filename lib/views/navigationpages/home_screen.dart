@@ -6,6 +6,7 @@ import '../create_post_screen.dart';
 import '../../services/post_service.dart'; // LikeService also inside here
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../main.dart'; // 👈 import main.dart to access routeObserver
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,7 +15,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final TextEditingController _searchController = TextEditingController();
   String? userId;
 
@@ -41,9 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
         posts = data;
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Failed to load posts")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load posts")),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -51,9 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _navigateToCreatePost() async {
     if (userId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please login first")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please login first")),
+      );
       return;
     }
 
@@ -69,9 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _toggleLike(int index) async {
     if (userId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please login first")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please login first")),
+      );
       return;
     }
 
@@ -90,10 +91,29 @@ class _HomeScreenState extends State<HomeScreen> {
         };
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Failed to like post")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to like post")),
+      );
     }
+  }
+
+  // 👇 RouteAware methods
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Called when coming back to HomeScreen
+    _refreshPosts();
   }
 
   @override
@@ -197,25 +217,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF2196F3,
-                                        ).withOpacity(0.11),
+                                        color: const Color(0xFF2196F3)
+                                            .withOpacity(0.11),
                                         shape: BoxShape.circle,
                                       ),
                                       child: CircleAvatar(
                                         radius: 22,
                                         backgroundImage:
                                             (user['profilePicture'] ?? '')
-                                                .isNotEmpty
-                                            ? NetworkImage(
-                                                user['profilePicture'],
-                                              )
-                                            : null,
+                                                    .isNotEmpty
+                                                ? NetworkImage(
+                                                    user['profilePicture'],
+                                                  )
+                                                : null,
                                         child:
                                             (user['profilePicture'] ?? '')
-                                                .isEmpty
-                                            ? const Icon(Icons.person)
-                                            : null,
+                                                    .isEmpty
+                                                ? const Icon(Icons.person)
+                                                : null,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -255,13 +274,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       fit: BoxFit.cover,
                                       placeholder: (context, url) =>
                                           const Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
+                                        child: CircularProgressIndicator(),
+                                      ),
                                       errorWidget: (context, url, error) =>
                                           const Icon(
-                                            Icons.broken_image,
-                                            size: 50,
-                                          ),
+                                        Icons.broken_image,
+                                        size: 50,
+                                      ),
                                     ),
                                   ),
 

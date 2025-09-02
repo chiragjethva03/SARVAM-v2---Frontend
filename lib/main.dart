@@ -6,6 +6,9 @@ import 'package:sarvam/views/OnbordingScreen.dart';
 import 'theme/app_theme.dart';
 import 'providers/user_provider.dart';
 
+// 👇 Create a global RouteObserver
+final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -42,6 +45,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         home: OnboardingScreen(),
         debugShowCheckedModeBanner: false,
+        navigatorObservers: [routeObserver], // 👈 Add the RouteObserver here
       ),
     );
   }

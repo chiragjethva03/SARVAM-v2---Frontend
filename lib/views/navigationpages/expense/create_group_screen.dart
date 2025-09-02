@@ -29,6 +29,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   List<Map<String, dynamic>> _participants = [];
   String? _selectedPayer;
+  List<Map<String, dynamic>> _splits = [];
+  Map<String, double>? _savedSplits;
   String _splitMethod = "Split equally";
 
   @override
@@ -259,13 +261,39 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      SplitAmountScreen(participants: _participants),
+                  builder: (context) => SplitAmountScreen(
+                    participants: _participants,
+                    totalAmount: double.tryParse(_amountController.text) ?? 0,
+                    currentUser: _selectedPayer ?? "",
+                    initialSplits: _savedSplits,
+                  ),
                 ),
               );
 
-              if (result != null) {
-                setState(() => _splitMethod = result);
+              if (result != null && result is Map) {
+                // result expected: {"method": "custom", "splits": Map<String,double>}
+                final splits = result["splits"];
+                if (splits is Map<String, double>) {
+                  setState(() {
+                    _savedSplits = Map<String, double>.from(splits);
+                    _splitMethod = "Custom split";
+                  });
+                } else if (splits is Map) {
+                  // sometimes dynamic typing: try to convert numeric values
+                  final converted = <String, double>{};
+                  splits.forEach((k, v) {
+                    final numVal = v is num
+                        ? v.toDouble()
+                        : double.tryParse(v.toString()) ?? 0.0;
+                    converted[k.toString()] = double.parse(
+                      numVal.toStringAsFixed(2),
+                    );
+                  });
+                  setState(() {
+                    _savedSplits = converted;
+                    _splitMethod = "Custom split";
+                  });
+                }
               }
             },
             child: RichText(
