@@ -13,25 +13,13 @@ class ExpenseApi {
   Uri _u(String path) => Uri.parse('$BASE_URL$path');
 
   Map<String, String> _headers(String? bearer) => {
-    'Content-Type': 'application/json',
-    if (bearer != null && bearer.isNotEmpty) 'Authorization': 'Bearer $bearer',
-  };
+        'Content-Type': 'application/json',
+        if (bearer != null && bearer.isNotEmpty) 'Authorization': 'Bearer $bearer',
+      };
 
   /// Creates a group and the first expense in one call.
   ///
   /// Backend route expected: POST /api/expenses/group-with-expense
-  /// Body:
-  /// {
-  ///   groupName, createdBy,
-  ///   members: [{userId?, mobile?, name?}, ...],
-  ///   expense: {
-  ///     title, amount, category,
-  ///     paidBy: {userId? | mobile?},
-  ///     splitType: "equal"|"unequal",
-  ///     splitBetween: [{userId?, mobile?, shareAmount}, ...]
-  ///   }
-  /// }
-  // services/expense_api.dart
   Future<Map<String, dynamic>> createGroupWithExpense({
     required String groupName,
     required String createdBy,
@@ -39,7 +27,7 @@ class ExpenseApi {
     required String title,
     required double amount,
     required String category,
-    required Map<String, dynamic> paidBy, // <-- change here
+    required Map<String, dynamic> paidBy,
     required String splitType,
     required List<Map<String, dynamic>> splitBetween,
     String? bearerToken,
@@ -52,7 +40,7 @@ class ExpenseApi {
         "title": title,
         "amount": amount,
         "category": category,
-        "paidBy": paidBy, // <-- send object
+        "paidBy": paidBy,
         "splitType": splitType,
         "splitBetween": splitBetween,
       },
@@ -60,11 +48,7 @@ class ExpenseApi {
 
     final res = await http.post(
       Uri.parse('$BASE_URL/api/expenses/group-with-expense'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (bearerToken != null && bearerToken.isNotEmpty)
-          'Authorization': 'Bearer $bearerToken',
-      },
+      headers: _headers(bearerToken),
       body: jsonEncode(body),
     );
 
@@ -75,7 +59,7 @@ class ExpenseApi {
     throw Exception('HTTP ${res.statusCode}: ${res.body}');
   }
 
-  // services/expense_api.dart  (append)
+  /// Fetch groups for current user by userId or mobile
   Future<List<Map<String, dynamic>>> getMyGroups({
     String? userId,
     String? mobile,
@@ -106,6 +90,24 @@ class ExpenseApi {
       if (data is List) {
         return data.cast<Map<String, dynamic>>();
       }
+      throw Exception('Unexpected response');
+    }
+    throw Exception('HTTP ${res.statusCode}: ${res.body}');
+  }
+
+  /// Fetch details for a single group by groupId
+  Future<Map<String, dynamic>> getGroupDetails({
+    required String groupId,
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse(
+      '${ExpenseApi.BASE_URL}/api/expenses/groups/$groupId',
+    );
+
+    final res = await http.get(uri, headers: _headers(bearerToken));
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      final data = jsonDecode(res.body);
+      if (data is Map<String, dynamic>) return data;
       throw Exception('Unexpected response');
     }
     throw Exception('HTTP ${res.statusCode}: ${res.body}');

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/expense_api.dart';
 import 'join_create_group_sheet.dart';
 import '../../../main.dart';
-
+import 'group_detail_screen.dart';
 // import the same instance from where you defined it
 
 class ExpenseScreen extends StatefulWidget {
@@ -139,7 +139,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> with RouteAware {
         onRefresh: _load,
         child: ListView.separated(
           padding: const EdgeInsets.only(
-            top: 12,
+            top: 30,
             left: 20,
             right: 20,
             bottom: 80,
@@ -150,13 +150,22 @@ class _ExpenseScreenState extends State<ExpenseScreen> with RouteAware {
             final g = _groups[i];
             return InkWell(
               onTap: () {
-                // Navigator.pushNamed(context, '/expense/group', arguments: g);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupDetailScreen(
+                      groupId: g['_id'] as String,
+                      groupName: g['groupName'] as String? ?? 'Group',
+                    ),
+                  ),
+                );
               },
+
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xE6EAF3FA),
+                  color: const Color(0xFFD6E5F2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
