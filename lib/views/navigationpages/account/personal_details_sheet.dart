@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../../providers/user_provider.dart';
-import '../../../services/account_api.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../providers/user_provider.dart';
+import '../../../services/account_api.dart'; // must expose updatePersonalDetails(context:, fullName:, phoneNumber:)
 
 class PersonalDetailsSheet extends StatefulWidget {
   final String fullName;
   final String email;
-  final String? mobileNumber; // still okay to call it mobileNumber in widget
+  final String? mobileNumber;
   final Function(String fullName, String? mobileNumber) onSave;
 
   const PersonalDetailsSheet({
@@ -32,10 +34,7 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
     super.initState();
     _fullNameController = TextEditingController(text: widget.fullName);
     _mobileController = TextEditingController(text: widget.mobileNumber ?? "");
-
-    // ✅ Enable mobile field only if it's empty
-    _mobileEditable =
-        widget.mobileNumber == null || widget.mobileNumber!.isEmpty;
+    _mobileEditable = (widget.mobileNumber == null || widget.mobileNumber!.isEmpty);
   }
 
   @override
@@ -46,42 +45,53 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
   }
 
   Future<void> _saveDetails() async {
-  setState(() {
-    _loading = true;
-  });
+    setState(() => _loading = true);
 
-  final newFullName = _fullNameController.text.trim();
-  final newMobile = _mobileEditable
-      ? _mobileController.text.trim()
-      : widget.mobileNumber;
+    final newFullName = _fullNameController.text.trim();
 
-  final success = await AccountApi.updatePersonalDetails(
-    fullName: newFullName,
-    phoneNumber: newMobile,
-  );
+    // Only allow sending a phone when field is editable and non-empty
+    final String? newMobile = _mobileEditable
+        ? (_mobileController.text.trim().isEmpty ? null : _mobileController.text.trim())
+        : null; // keep existing on server
 
-  setState(() {
-    _loading = false;
-  });
+    final ok = await AccountApi.updatePersonalDetails(
+      context: context,
+      fullName: newFullName,
+      phoneNumber: newMobile, // null means "do not change" on backend
+    );
 
-  if (success) {
-    // ✅ Update provider instantly
+    setState(() => _loading = false);
+
+    if (!ok) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Failed to update details')));
+      return;
+    }
+
+    // Update provider name
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     userProvider.setUser(newFullName, userProvider.profilePicture ?? "");
 
-    widget.onSave(newFullName, newMobile);
+    // Callback to parent
+    widget.onSave(newFullName, newMobile ?? widget.mobileNumber);
 
-    if (_mobileEditable && (newMobile?.isNotEmpty ?? false)) {
+    // Lock mobile after first successful save
+    if (_mobileEditable && (newMobile != null && newMobile.isNotEmpty)) {
       setState(() {
         _mobileEditable = false;
-        _mobileController.text = newMobile!;
+        _mobileController.text = newMobile;
       });
     }
 
+    // Debug verify
+    final prefs = await SharedPreferences.getInstance();
+    // ignore: avoid_print
+    print('Mobile in prefs: ${prefs.getString('mobile')}');
+
+    if (!mounted) return;
     Navigator.pop(context);
   }
-}
-
 
   InputDecoration _inputDecoration({
     required String hint,
@@ -108,9 +118,7 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -125,8 +133,6 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // Full Name
             TextField(
               controller: _fullNameController,
               decoration: _inputDecoration(
@@ -135,8 +141,6 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Mobile Number
             TextField(
               controller: _mobileController,
               enabled: _mobileEditable,
@@ -145,18 +149,14 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
                 color: _mobileEditable ? Colors.black : Colors.grey,
               ),
               decoration: _inputDecoration(
-                hint:
-                    widget.mobileNumber == null || widget.mobileNumber!.isEmpty
+                hint: (widget.mobileNumber == null || widget.mobileNumber!.isEmpty)
                     ? "Mobile Number"
-                    : widget.mobileNumber!, // ✅ show real number if exists
+                    : widget.mobileNumber!,
                 icon: Icons.phone_outlined,
                 prefixText: "+91 ",
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // Email (read-only)
             TextField(
               enabled: false,
               decoration: _inputDecoration(
@@ -165,8 +165,6 @@ class _PersonalDetailsSheetState extends State<PersonalDetailsSheet> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Save Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

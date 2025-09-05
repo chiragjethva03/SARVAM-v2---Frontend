@@ -9,14 +9,15 @@ class UserProvider extends ChangeNotifier {
     fullName = name;
     profilePicture = pic;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('name', name);
-    await prefs.setString('photoUrl', pic);
+    await prefs.setString('fullName', name);
+    await prefs.setString('profilePicture', pic);
     notifyListeners();
   }
 
-  void setProfilePicture(String newUrl) {
+  void setProfilePicture(String newUrl) async {
     profilePicture = newUrl;
-    _savePhotoUrl(newUrl); // Save to shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profilePicture', newUrl);
     notifyListeners();
   }
 
@@ -28,13 +29,8 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    fullName = prefs.getString('name');
-    profilePicture = prefs.getString('photoUrl');
+    fullName = prefs.getString('fullName');
+    profilePicture = prefs.getString('profilePicture');
     notifyListeners();
-  }
-
-  Future<void> _savePhotoUrl(String url) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('photoUrl', url);
   }
 }

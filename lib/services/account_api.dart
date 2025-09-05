@@ -4,9 +4,12 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import 'auth_service.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 
 class AccountApi {
-  static const String baseUrl = "${ApiConfig.baseUrl}"; // change as needed
+  static const String baseUrl = "${ApiConfig.baseUrl}";
 
   static Future<Map<String, dynamic>?> fetchUserDetails() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,52 +26,68 @@ class AccountApi {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+
+      final user = (data is Map && data['user'] is Map)
+          ? data['user'] as Map<String, dynamic>
+          : (data as Map<String, dynamic>);
+
+      // Keep local name/picture fresh
+      final fullName = (user['fullName'] ?? '').toString();
+      final profilePicture = (user['profilePicture'] ?? '').toString();
+      await prefs.setString('fullName', fullName);
+      await prefs.setString('profilePicture', profilePicture);
+
+      // Only write mobile if backend has one; else keep local/cached
+      final serverPhone = (user['phoneNumber'] ?? user['mobile'] ?? '').toString().trim();
+      if (serverPhone.isNotEmpty) {
+        await AuthService.setMobile(serverPhone);
+      }
+
+      return data;
     } else {
+      // ignore: avoid_print
       print("Failed to load user: ${response.body}");
       return null;
     }
   }
 
-  // In services/account_api.dart
   static Future<bool> updatePersonalDetails({
+    required BuildContext context,
     required String fullName,
     String? phoneNumber,
-    
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     if (token == null) return false;
 
-    final url = Uri.parse('$baseUrl/user/update-details');
-    final response = await http.put(
+    final url = Uri.parse('${ApiConfig.baseUrl}/user/update-details');
+    final body = {'fullName': fullName, 'phoneNumber': phoneNumber};
+
+    final res = await http.put(
       url,
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
       },
-      body: jsonEncode({"fullName": fullName, "phoneNumber": phoneNumber}),
+      body: jsonEncode(body),
     );
 
-    if (response.statusCode == 200) {
-      // Save new name in local preferences too
-      await prefs.setString('name', fullName);
+    if (res.statusCode == 200) {
+      await prefs.setString('fullName', fullName);
+
+      final currentPic = prefs.getString('profilePicture') ?? '';
+      Provider.of<UserProvider>(context, listen: false).setUser(fullName, currentPic);
+
+      if (phoneNumber != null && phoneNumber.trim().isNotEmpty) {
+        await AuthService.setMobile(phoneNumber.trim());
+      }
       return true;
     }
-
     return false;
   }
 
-  static Future<Map<String, String>> _authHeaders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
-  /// New: return success and backend message
   static Future<Map<String, dynamic>> changePasswordDetailed({
     required String currentPassword,
     required String newPassword,
@@ -89,14 +108,13 @@ class AccountApi {
         }),
       );
 
-      // Always decode body even for non-200
       final data = jsonDecode(res.body);
-
       return {
         "success": data["success"] ?? res.statusCode == 200,
         "message": data["message"] ?? "Unexpected error",
       };
     } catch (e) {
+      // ignore: avoid_print
       print("Error in changePasswordDetailed: $e");
       return {"success": false, "message": "Something went wrong"};
     }
@@ -117,17 +135,27 @@ class AccountApi {
     );
 
     if (response.statusCode == 200) {
-      // Clear user data after account deletion
+      // clear session keys but keep cached per-user mobiles
+      final mobileMapKeys = prefs.getKeys().where((k) => k.startsWith('mobile:')).toList();
+      final cachedPairs = <String, String>{};
+      for (final k in mobileMapKeys) {
+        cachedPairs[k] = prefs.getString(k) ?? '';
+      }
       await prefs.clear();
+      // restore cached per-user mobiles after a full clear
+      for (final e in cachedPairs.entries) {
+        if (e.value.isNotEmpty) await prefs.setString(e.key, e.value);
+      }
       return true;
     } else {
+      // ignore: avoid_print
       print("Failed to delete account: ${response.body}");
       return false;
     }
   }
 
   static Future<List<dynamic>> fetchUserPosts() async {
-    final token = await AuthService.getToken(); // if you store token
+    final token = await AuthService.getToken();
     final response = await http.get(
       Uri.parse('$baseUrl/posts/my'),
       headers: {
@@ -153,7 +181,6 @@ class AccountApi {
         'Content-Type': 'application/json',
       },
     );
-
     return response.statusCode == 200;
   }
 
@@ -163,19 +190,17 @@ class AccountApi {
 
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(
-        await http.MultipartFile.fromPath('profilePicture', imageFile.path),
-      );
+      ..files.add(await http.MultipartFile.fromPath('profilePicture', imageFile.path));
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
 
-    print('Upload response: ${response.body}');
-
     if (response.statusCode == 200) {
       final responseData = jsonDecode(response.body);
-      final newUrl = responseData['profilePicture'];
-      print('Updated URL: $newUrl');
+      final newUrl = (responseData['profilePicture'] ?? '').toString();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profilePicture', newUrl);
       return newUrl;
     } else {
       return null;
