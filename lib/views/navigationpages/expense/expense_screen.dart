@@ -154,7 +154,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> with RouteAware {
                   context,
                   MaterialPageRoute(
                     builder: (context) => GroupDetailScreen(
-                      groupId: g['_id'] as String,
+                      groupId:
+                          g['_id']
+                              as String, // ✅ this is where the groupId comes from
                       groupName: g['groupName'] as String? ?? 'Group',
                     ),
                   ),

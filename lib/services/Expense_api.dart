@@ -13,9 +13,9 @@ class ExpenseApi {
   Uri _u(String path) => Uri.parse('$BASE_URL$path');
 
   Map<String, String> _headers(String? bearer) => {
-        'Content-Type': 'application/json',
-        if (bearer != null && bearer.isNotEmpty) 'Authorization': 'Bearer $bearer',
-      };
+    'Content-Type': 'application/json',
+    if (bearer != null && bearer.isNotEmpty) 'Authorization': 'Bearer $bearer',
+  };
 
   /// Creates a group and the first expense in one call.
   ///
@@ -109,6 +109,23 @@ class ExpenseApi {
       final data = jsonDecode(res.body);
       if (data is Map<String, dynamic>) return data;
       throw Exception('Unexpected response');
+    }
+    throw Exception('HTTP ${res.statusCode}: ${res.body}');
+  }
+
+  /// Delete group by groupId
+  Future<void> deleteGroup({
+    required String groupId,
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse(
+      '${ExpenseApi.BASE_URL}/api/expenses/delete/$groupId',
+    );
+
+    final res = await http.delete(uri, headers: _headers(bearerToken));
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return; // success, nothing else to parse
     }
     throw Exception('HTTP ${res.statusCode}: ${res.body}');
   }
