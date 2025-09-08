@@ -9,14 +9,21 @@ import './navigationpages/home_screen.dart';
 import 'navigationpages/map/map_screen.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int initialIndex; // 👈 NEW
+  const HomePage({super.key, this.initialIndex = 0});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex; // 👈 changed to late so we can init in initState
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex; // 👈 use passed index
+  }
 
   final List<Widget> _pages = const [
     HomeScreen(),

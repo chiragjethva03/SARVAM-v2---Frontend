@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/Expense_api.dart';
+import 'expense_screen.dart';
+import '../../home_page.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -52,23 +54,28 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     }
   }
 
-  Future<void> _deleteGroup() async {
+  Future<void> _deleteGroup(String groupId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final api = ExpenseApi();
 
-      // 🔴 TODO: Implement actual delete API in ExpenseApi
-      await api.deleteGroup(groupId: widget.groupId, bearerToken: token);
+      await api.deleteGroup(groupId: groupId, bearerToken: token);
 
       if (!mounted) return;
-      Navigator.of(context).pop(); // Close sheet
-      Navigator.of(context).pop(true); // Go back to expense list
+
+      // ✅ Navigate back to HomePage with Expense tab selected
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const HomePage(initialIndex: 2),
+        ),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to delete group: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to delete group: $e")));
     }
   }
 
@@ -109,7 +116,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 label: const Text("Delete Group"),
                 onPressed: () {
                   Navigator.of(ctx).pop();
-                  _deleteGroup();
+                  _deleteGroup(widget.groupId);
                 },
               ),
               const SizedBox(height: 8),
@@ -136,17 +143,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     } else if (_group == null) {
       body = const Center(child: Text('No data'));
     } else {
-      final expenses =
-          (_group!['expenses'] as List<dynamic>? ?? []).cast<Map>();
+      final expenses = (_group!['expenses'] as List<dynamic>? ?? []).cast<Map>();
 
       body = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
-            // ✅ GroupId at top
+            // ✅ Group Name at top
             Text(
-              _group?['groupId'] ?? '',
+              widget.groupName,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -232,10 +238,10 @@ class _ExpenseTile extends StatelessWidget {
     ).toList();
 
     final yourShare = (splits.firstWhere(
-          (x) => x['mobile'] == meMobile,
-          orElse: () => {'shareAmount': 0.0},
-        )['shareAmount'] ??
-        0.0) as double;
+              (x) => x['mobile'] == meMobile,
+              orElse: () => {'shareAmount': 0.0},
+            )['shareAmount'] ??
+            0.0) as double;
 
     final isPayer = paidByMobile == meMobile;
 

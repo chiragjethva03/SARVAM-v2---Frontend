@@ -129,4 +129,27 @@ class ExpenseApi {
     }
     throw Exception('HTTP ${res.statusCode}: ${res.body}');
   }
+
+    /// Join an existing group using groupId (e.g. SarvamEx1234)
+  Future<Map<String, dynamic>> joinGroup({
+    required String groupId,
+    String? bearerToken,
+  }) async {
+    final uri = Uri.parse('$BASE_URL/api/expenses/joingroup');
+    final body = {"groupId": groupId};
+
+    final res = await http.post(
+      uri,
+      headers: _headers(bearerToken),
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return jsonDecode(res.body.isEmpty ? '{}' : res.body)
+          as Map<String, dynamic>;
+    }
+    throw Exception('HTTP ${res.statusCode}: ${res.body}');
+  }
+
+
 }

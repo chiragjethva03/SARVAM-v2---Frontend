@@ -86,10 +86,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> with RouteAware {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => JoinCreateGroupSheet(
-        onJoinGroup: () {
-          Navigator.pop(context);
-          // implement join flow
-        },
         onCreateNew: () async {
           Navigator.pop(context);
           // Navigate to create page. After it pops, didPopNext() will fire and refresh.
