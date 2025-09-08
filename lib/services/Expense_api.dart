@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Minimal API wrapper for Expense service.
 /// Set BASE_URL to your server origin. Example: https://api.example.com
@@ -130,13 +131,25 @@ class ExpenseApi {
     throw Exception('HTTP ${res.statusCode}: ${res.body}');
   }
 
-    /// Join an existing group using groupId (e.g. SarvamEx1234)
+  /// Join an existing group using groupId (e.g. SarvamEx1234)
   Future<Map<String, dynamic>> joinGroup({
     required String groupId,
     String? bearerToken,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('fullName') ?? '';
+    final mobile = prefs.getString('mobile') ?? '';
+    final userId = prefs.getString('userId');
+
     final uri = Uri.parse('$BASE_URL/api/expenses/joingroup');
-    final body = {"groupId": groupId};
+
+    // ✅ Only include userId if it’s not null
+    final body = {
+      "groupId": groupId,
+      if (userId != null) "userId": userId,
+      "name": name,
+      "mobile": mobile,
+    };
 
     final res = await http.post(
       uri,
@@ -144,12 +157,24 @@ class ExpenseApi {
       body: jsonEncode(body),
     );
 
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body.isEmpty ? '{}' : res.body)
-          as Map<String, dynamic>;
+    try {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        // ✅ Safely decode JSON, fallback to empty map
+        final decoded = res.body.isEmpty
+            ? <String, dynamic>{}
+            : jsonDecode(res.body) as Map<String, dynamic>;
+        return decoded;
+      } else {
+        // ✅ Try decoding error response safely
+        final decoded = res.body.isEmpty
+            ? <String, dynamic>{}
+            : jsonDecode(res.body) as Map<String, dynamic>;
+        final message = decoded['error'] ?? 'Something went wrong';
+        throw message; // 👈 Will only throw the message string
+      }
+    } catch (e) {
+      // ✅ Catch JSON parsing issues or other errors
+      throw 'Unexpected error: ${e.toString()}';
     }
-    throw Exception('HTTP ${res.statusCode}: ${res.body}');
   }
-
-
 }
