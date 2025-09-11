@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/Expense_api.dart';
-import 'expense_screen.dart';
 import '../../home_page.dart';
 
 class GroupDetailScreen extends StatefulWidget {
@@ -64,7 +63,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
       if (!mounted) return;
 
-      // ✅ Navigate back to HomePage with Expense tab selected
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (context) => const HomePage(initialIndex: 2),
@@ -143,21 +141,23 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     } else if (_group == null) {
       body = const Center(child: Text('No data'));
     } else {
-      final expenses = (_group!['expenses'] as List<dynamic>? ?? []).cast<Map>();
+      // normalize expenses as a List<Map<String, dynamic>>
+      final expenses = (((_group!['expenses'] as List<dynamic>?) ?? [])
+              .map((e) => (e as Map).cast<String, dynamic>())
+              .toList())
+          .cast<Map<String, dynamic>>();
 
       body = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
-            // ✅ Group Name at top
             Text(
               widget.groupName,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
-            // ✅ Overall balance
             _YourBalanceSummary(meMobile: _meMobile, expenses: expenses),
             const SizedBox(height: 20),
 
@@ -168,7 +168,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             const SizedBox(height: 8),
 
             for (final e in expenses)
-              _ExpenseTile(e as Map<String, dynamic>, meMobile: _meMobile),
+              _ExpenseTile(e, meMobile: _meMobile),
           ],
         ),
       );
@@ -225,33 +225,50 @@ class _ExpenseTile extends StatelessWidget {
     final title = e['title']?.toString() ?? 'Expense';
     final amt = (e['amount'] is num) ? (e['amount'] as num).toDouble() : 0.0;
 
-    final paidByMap = (e['paidBy'] as Map?) ?? {};
+    final paidByMap = ((e['paidBy'] as Map?) ?? {}).cast<String, dynamic>();
     final paidByMobile = paidByMap['mobile']?.toString();
+    final paidByName =
+        paidByMap['fullName']?.toString() ?? paidByMobile ?? "Unknown";
 
-    final splits = ((e['splitBetween'] as List?) ?? []).cast<Map>().map(
-      (x) => {
-        'mobile': x['mobile']?.toString(),
-        'shareAmount': (x['shareAmount'] is num)
-            ? (x['shareAmount'] as num).toDouble()
-            : 0.0,
-      },
-    ).toList();
+    final splitRaw = (e['splitBetween'] as List?) ?? [];
+    final splits = splitRaw.map((x) {
+      final m = (x as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final share =
+          (m['shareAmount'] is num) ? (m['shareAmount'] as num).toDouble() : 0.0;
+      return {
+        'mobile': m['mobile']?.toString(),
+        'fullName': m['fullName']?.toString(),
+        'shareAmount': share,
+      };
+    }).toList();
 
-    final yourShare = (splits.firstWhere(
-              (x) => x['mobile'] == meMobile,
-              orElse: () => {'shareAmount': 0.0},
-            )['shareAmount'] ??
-            0.0) as double;
+    // find my share safely
+    double yourShare = 0.0;
+    final myEntry = splits.firstWhere(
+      (x) => x['mobile'] == meMobile,
+      orElse: () => {'shareAmount': 0.0},
+    );
+    final ms = myEntry['shareAmount'];
+    if (ms is num) yourShare = ms.toDouble();
 
-    final isPayer = paidByMobile == meMobile;
+    // compute others owe if I paid
+    double othersOwe = 0.0;
+    if (paidByMobile == meMobile) {
+      for (final s in splits) {
+        final mob = s['mobile'];
+        if (mob != meMobile) {
+          final sh = s['shareAmount'];
+          if (sh is num) othersOwe += sh.toDouble();
+        }
+      }
+    }
 
     String rightText = '';
     Color rightColor = Colors.black;
 
-    if (isPayer) {
-      final net = amt - yourShare;
-      if (net > 0) {
-        rightText = 'You lent\n₹${net.toStringAsFixed(0)}';
+    if (paidByMobile == meMobile) {
+      if (othersOwe > 0) {
+        rightText = 'You lent\n₹${othersOwe.toStringAsFixed(0)}';
         rightColor = Colors.green;
       }
     } else {
@@ -264,9 +281,9 @@ class _ExpenseTile extends StatelessWidget {
     return Card(
       color: Colors.blue.shade50,
       child: ListTile(
-        leading: const Icon(Icons.flight, color: Colors.blue, size: 32),
+        leading: const Icon(Icons.receipt_long, color: Colors.blue, size: 32),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('You paid ₹${amt.toStringAsFixed(0)}'),
+        subtitle: Text('$paidByName paid ₹${amt.toStringAsFixed(0)}'),
         trailing: Text(
           rightText,
           style: TextStyle(color: rightColor, fontWeight: FontWeight.w600),
@@ -277,53 +294,80 @@ class _ExpenseTile extends StatelessWidget {
   }
 }
 
-// ✅ Balance summary
+// ✅ Balance summary (Splitwise style)
 class _YourBalanceSummary extends StatelessWidget {
   final String? meMobile;
-  final List<Map> expenses;
+  final List<Map<String, dynamic>> expenses;
   const _YourBalanceSummary({required this.meMobile, required this.expenses});
 
   @override
   Widget build(BuildContext context) {
-    final totals = _compute(expenses, meMobile);
+    final summary = _compute(expenses, meMobile);
+    final double lent = summary['lent'] ?? 0.0;
+    final double borrowed = summary['borrowed'] ?? 0.0;
 
-    String overallText = '';
-    Color overallColor = Colors.black;
-
-    if (totals < 0) {
-      overallText = 'You owe ₹${(-totals).toStringAsFixed(0)} overall';
-      overallColor = Colors.red;
-    } else if (totals > 0) {
-      overallText = 'You are owed ₹${totals.toStringAsFixed(0)} overall';
-      overallColor = Colors.green;
-    } else {
-      overallText = 'All settled';
+    if (lent == 0.0 && borrowed == 0.0) {
+      return const Text(
+        "All settled",
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(overallText, style: TextStyle(fontSize: 16, color: overallColor)),
+        if (lent > 0)
+          Text(
+            "Total Lent: ₹${lent.toStringAsFixed(0)}",
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.green,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        if (borrowed > 0)
+          Text(
+            "Total Borrowed: ₹${borrowed.toStringAsFixed(0)}",
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.red,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
       ],
     );
   }
 
-  static double _compute(List<Map> expenses, String? me) {
-    double paidByMe = 0, myShare = 0;
+  static Map<String, double> _compute(
+      List<Map<String, dynamic>> expenses, String? me) {
+    double totalLent = 0.0;
+    double totalBorrowed = 0.0;
+
     for (final e in expenses) {
-      final amount =
-          (e['amount'] is num) ? (e['amount'] as num).toDouble() : 0.0;
-      final payer = (e['paidBy'] as Map?)?['mobile']?.toString();
-      if (payer == me) paidByMe += amount;
-      final splits = ((e['splitBetween'] as List?) ?? []).cast<Map>();
-      for (final s in splits) {
-        if (s['mobile']?.toString() == me) {
-          myShare += (s['shareAmount'] is num)
-              ? (s['shareAmount'] as num).toDouble()
-              : 0.0;
+      final paidBy = (e['paidBy'] as Map?)?.cast<String, dynamic>();
+      final paidByMobile = paidBy?['mobile']?.toString();
+      if (paidByMobile == null) continue;
+
+      final splitsRaw = (e['splitBetween'] as List?) ?? [];
+      for (final sRaw in splitsRaw) {
+        final s = (sRaw as Map?)?.cast<String, dynamic>() ?? {};
+        final smobile = s['mobile']?.toString();
+        final share = (s['shareAmount'] is num)
+            ? (s['shareAmount'] as num).toDouble()
+            : 0.0;
+        if (smobile == null) continue;
+
+        if (paidByMobile == me && smobile != me) {
+          totalLent += share;
+        } else if (smobile == me && paidByMobile != me) {
+          totalBorrowed += share;
         }
       }
     }
-    return paidByMe - myShare;
+
+    return {
+      'lent': totalLent,
+      'borrowed': totalBorrowed,
+    };
   }
 }
