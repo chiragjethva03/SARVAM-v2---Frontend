@@ -4,6 +4,7 @@ import '../../widgets/auth_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_overlay.dart';
 import '.././home_page.dart';
+import 'email_validate_.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -139,8 +140,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             Text(
                               'Welcome back, your next\nAdventure awaits !',
                               style: TextStyle(
-                                fontSize:
-                                    20 * (screenWidth / 360) * textScale,
+                                fontSize: 20 * (screenWidth / 360) * textScale,
                               ),
                             ),
                           ],
@@ -150,8 +150,9 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   SizedBox(height: screenHeight * 0.05),
                   Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.06,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -169,8 +170,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             child: Text(
                               'Login',
                               style: TextStyle(
-                                fontSize:
-                                    16 * (screenWidth / 360) * textScale,
+                                fontSize: 16 * (screenWidth / 360) * textScale,
                               ),
                             ),
                           ),
@@ -178,12 +178,17 @@ class _SignInScreenState extends State<SignInScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) =>
+                                    const EmailValidateDialog(),
+                              );
+                            },
                             child: Text(
                               'Forgot password ?',
                               style: TextStyle(
-                                fontSize:
-                                    14 * (screenWidth / 360) * textScale,
+                                fontSize: 14 * (screenWidth / 360) * textScale,
                                 color: Colors.blue,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -194,8 +199,9 @@ class _SignInScreenState extends State<SignInScreen> {
                           children: [
                             const Expanded(child: Divider()),
                             Padding(
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth * 0.02,
+                              ),
                               child: Text(
                                 "or",
                                 style: TextStyle(
