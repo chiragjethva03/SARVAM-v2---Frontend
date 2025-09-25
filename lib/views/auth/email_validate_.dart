@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async'; // for Future.delayed
 import '../../services/forgot_password.dart';
+import 'otp_dialog.dart'; // import OTP dialog
 
 class EmailValidateDialog extends StatefulWidget {
   const EmailValidateDialog({super.key});
@@ -14,21 +16,29 @@ class _EmailValidateDialogState extends State<EmailValidateDialog> {
   String? _message;
 
   void _validateEmail() async {
+    final email = _emailController.text.trim();
+
+    // ✅ Step 1: Validate Gmail format
+    if (!email.endsWith("@gmail.com")) {
+      setState(() {
+        _message = "Only Gmail addresses are allowed.";
+      });
+      return;
+    }
+
     setState(() {
       _loading = true;
       _message = null;
     });
 
-    final result =
-        await EmailValidateService.validateEmail(_emailController.text.trim());
+    final result = await EmailValidateService.validateEmail(email);
 
     setState(() {
       _loading = false;
     });
 
     if (!result["success"]) {
-      // Email not found → back to SignIn screen
-      Navigator.pop(context); // closes dialog
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result["message"] ?? "Email not found")),
       );
@@ -36,7 +46,6 @@ class _EmailValidateDialogState extends State<EmailValidateDialog> {
     }
 
     if (result["action"] == "google") {
-      // close dialog and show info message
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -45,11 +54,20 @@ class _EmailValidateDialogState extends State<EmailValidateDialog> {
         ),
       );
     } else if (result["action"] == "manual") {
-      // ✅ show OTP dialog (next step later)
       setState(() {
         _message = "OTP sent. Please check your email.";
       });
-      // TODO: open OTP dialog (you’ll design later)
+
+      // ✅ Step 2: After 3 sec, close this sheet & open OTP sheet
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          Navigator.pop(context); // close current sheet
+          showDialog(
+            context: context,
+            builder: (_) => OtpDialog(email: email), // ✅ pass email here
+          );
+        }
+      });
     }
   }
 
@@ -69,7 +87,7 @@ class _EmailValidateDialogState extends State<EmailValidateDialog> {
           TextField(
             controller: _emailController,
             decoration: const InputDecoration(
-              labelText: "Enter your email",
+              labelText: "Enter your Gmail",
               border: OutlineInputBorder(),
             ),
           ),

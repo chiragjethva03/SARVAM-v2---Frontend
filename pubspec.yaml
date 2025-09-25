@@ -96,8 +96,10 @@ flutter:
     - assets/IntroScreen/intro3-3.png
     - assets/IntroScreen/intro4.png
     - assets/auth/google.png
+    - assets/auth/forgot.png
     - assets/Accountbg/bg.png
     - assets/Accountbg/default_avatar.png
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
